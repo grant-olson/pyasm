@@ -1,0 +1,219 @@
+==================================================
+Anatomy of a Hello World Object file Release build
+==================================================
+
+This attempts to describe the meaning of all of the various sections here for my own benefit.  We start off with the header which I understand pretty well.
+
+::
+
+  Microsoft (R) COFF/PE Dumper Version 7.10.3077
+  Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+  Dump of file rawHelloWorld.obj
+
+  File Type: COFF OBJECT
+
+  FILE HEADER VALUES
+             14C machine (x86)
+               4 number of sections
+               0 time date stamp Wed Dec 31 19:00:00 1969
+             126 file pointer to symbol table
+               F number of symbols
+               0 size of optional header
+               0 characteristics
+
+Section 1
+=========
+
+The directive section.  This apparently contains flags for use by the linker
+
+::
+
+  SECTION HEADER #1
+  .drectve name
+       0 physical address
+       0 virtual address
+      26 size of raw data
+      B4 file pointer to raw data (000000B4 to 000000D9)
+       0 file pointer to relocation table
+       0 file pointer to line numbers
+       0 number of relocations
+       0 number of line numbers
+  100A00 flags
+         Info
+         Remove
+         1 byte align
+
+  RAW DATA #1
+  00000000: 2D 64 65 66 61 75 6C 74 6C 69 62 3A 4C 49 42 43  -defaultlib:LIBC
+  00000010: 20 2D 64 65 66 61 75 6C 74 6C 69 62 3A 4F 4C 44   -defaultlib:OLD
+  00000020: 4E 41 4D 45 53 20                                NAMES 
+
+   Linker Directives
+   -----------------
+   -defaultlib:LIBC
+   -defaultlib:OLDNAMES
+
+Section 2
+=========
+
+The .text section.
+This contains the executable instructions along with relocation data
+
+::
+
+  SECTION HEADER #2
+   .text name
+       0 physical address
+       0 virtual address
+      10 size of raw data
+      DA file pointer to raw data (000000DA to 000000E9)
+      EA file pointer to relocation table
+       0 file pointer to line numbers
+       2 number of relocations
+       0 number of line numbers
+  60501020 flags
+         Code
+         COMDAT; sym= _main
+         16 byte align
+         Execute Read
+
+  RAW DATA #2
+  00000000: 68 00 00 00 00 E8 00 00 00 00 83 C4 04 33 C0 C3  h....è.....Ä.3ÀÃ
+
+Section 2 relocations
+---------------------
+
+The string is listed as DIR32 which I'm guessing corresponds to immediate in Intel specs *[direct == immediate]* and REL32
+which is clearly a relative link
+
+::
+
+  RELOCATIONS #2
+                                                  Symbol    Symbol
+   Offset    Type              Applied To         Index     Name
+   --------  ----------------  -----------------  --------  ------
+   00000001  DIR32                      00000000         C  ??_C@_0O@FEEI@Hello?5World?$CB?6?$AA@ (`string')
+   00000006  REL32                      00000000         9  _printf
+
+Section 3
+=========
+
+Data Section
+------------
+
+The data section contains initialized data, i.e. the Hello World string in this case.
+What does COMDAT mean? How is that generated?
+
+::
+
+  SECTION HEADER #3
+   .data name
+       0 physical address
+       0 virtual address
+       E size of raw data
+      FE file pointer to raw data (000000FE to 0000010B)
+       0 file pointer to relocation table
+       0 file pointer to line numbers
+       0 number of relocations
+       0 number of line numbers
+  C0301040 flags
+         Initialized Data
+         COMDAT; sym= "`string'" (??_C@_0O@FEEI@Hello?5World?$CB?6?$AA@)
+         4 byte align
+         Read Write
+
+  RAW DATA #3
+  00000000: 48 65 6C 6C 6F 20 57 6F 72 6C 64 21 0A 00        Hello World!..
+
+Section 4
+=========
+
+Debug$F
+-------
+
+Comdat again? I guess this contains the information for FPO relocation
+So that de don't lose the callstack when debugging.
+
+This is something I don't even care about at the moment.
+
+::
+
+  SECTION HEADER #4
+  .debug$F name
+       0 physical address
+       0 virtual address
+      10 size of raw data
+     10C file pointer to raw data (0000010C to 0000011B)
+     11C file pointer to relocation table
+       0 file pointer to line numbers
+       1 number of relocations
+       0 number of line numbers
+  42101048 flags
+         No Pad
+         Initialized Data
+         COMDAT (no symbol)
+         Discardable
+         1 byte align
+         Read Only
+
+  RAW DATA #4
+  00000000: 00 00 00 00 10 00 00 00 00 00 00 00 02 00 00 00  ................
+
+FPO Data
+--------
+
+::
+
+  FPO Data (1)
+                                               Use Has  Frame
+   RVA      Proc Size   Locals  Regs   Prolog  BP  SEH  Type   Params
+   00000000        16        0     0        0   N   N    fpo        8
+
+Relocation Table
+----------------
+
+
+
+::
+
+  RELOCATIONS #4
+                                                  Symbol    Symbol
+   Offset    Type              Applied To         Index     Name
+   --------  ----------------  -----------------  --------  ------
+   00000000  DIR32NB                    00000000         8  _main
+
+SYMBOL TABLE
+============
+
+::
+
+  COFF SYMBOL TABLE
+  000 00000000 DEBUG  notype       Filename     | .file
+      C:\objtest\objtest\objtest.cpp
+  003 000B2306 ABS    notype       Static       | @comp.id
+  004 00000000 SECT1  notype       Static       | .drectve
+      Section length   26, #relocs    0, #linenums    0, checksum 98ADE04F
+  006 00000000 SECT2  notype       Static       | .text
+      Section length   10, #relocs    2, #linenums    0, checksum 33CDF09D, selection    1 (pick no duplicates)
+  008 00000000 SECT2  notype ()    External     | _main
+  009 00000000 UNDEF  notype ()    External     | _printf
+  00A 00000000 SECT3  notype       Static       | .data
+      Section length    E, #relocs    0, #linenums    0, checksum FBA62CFE, selection    2 (pick any)
+  00C 00000000 SECT3  notype       External     | ??_C@_0O@FEEI@Hello?5World?$CB?6?$AA@ (`string')
+  00D 00000000 SECT4  notype       Static       | .debug$F
+      Section length   10, #relocs    1, #linenums    0, checksum        0, selection    5 (pick associative Section 0x2)
+
+  String Table Size = 0x2A bytes
+
+
+Summary
+=======
+
+  Summary
+
+           E .data
+          10 .debug$F
+          26 .drectve
+          10 .text

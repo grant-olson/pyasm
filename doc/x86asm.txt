@@ -47,4 +47,5 @@ heap_variable
   A varible that gets created on the heap at compile time.  Scope is global.
   May need to add additional typing information.
 
-  
+constant
+  Resolved immediately to a real value and thrown away while processing an instruction
