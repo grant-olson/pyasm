@@ -115,7 +115,7 @@ def tokenizeString(s,reToProcess):
         elif instDict['SYMBOL']: lst.append((SYMBOL,instDict['SYMBOL']))
         else:
             raise tokenizeError("Tokenization failed on string %s, match %s" \
-                                  % (string,rest))
+                                  % (s,rest))
         rest = instDict['rest']
     return tuple(lst)
 

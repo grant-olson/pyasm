@@ -399,7 +399,8 @@ class instructionInstance:
                 first,rest = rest[:4],rest[4:]
                 self.Immediate = struct.unpack('<l',first)[0]
             else:
-                raise RuntimeError("Invalid Immdediate size [%s]" % self.ImmediateSize)
+                raise RuntimeError("Invalid Immdediate size [%s]" % \
+                                   self.InstructionImmediateSize)
 
         if rest:
             raise RuntimeError("Couldn't unpack all data")
@@ -410,6 +411,7 @@ class instructionInstance:
             return retVal
         if size >= 1:
             retVal += "%02X " % (data % 0xFF)
+        return retVal
         
     def OpText(self):
         size = 0

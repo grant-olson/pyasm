@@ -8,8 +8,6 @@ at runtime instead of just generating coff files.
 
 I need to get the instruction tokenizer working for this to take off.
 """
-
-import re
 from x86tokenizer import tokenizeInst
 
 class labelRef:
