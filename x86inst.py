@@ -486,7 +486,16 @@ class instructionInstance:
                     else:
                         tmpModRM.RegOp = registerVal
                 elif firstDef[1] in ('imm32','imm16','imm8'):
-                    self.Immediate = eval(firstTok[1])
+                    if firstTok[0] == NUMBER:
+                        self.Immediate = eval(firstTok[1])
+                    else:
+                        self.Immediate = 0x0
+                elif firstDef[1] in ('rel32','rel16','rel8'):
+                    # Do we need to do the math here (convert absolute val to relative?)
+                    if firstTok[0] == NUMBER:
+                        self.Displacement = eval(firstTok[1])
+                    else:
+                        self.Displacement = 0x0
                 else:
                     #there will really be more cases here.
                     raise x86instError("Invalid Operand type '%s'" % firstDef[1])
