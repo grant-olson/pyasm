@@ -113,13 +113,13 @@ excmem_GetSymbolAddress(PyObject *self, PyObject *args)
 	if (!PyArg_ParseTuple(args, "ss", &libname, &symname))
 		return NULL;
 
-	lib_addr = dlopen(libname,RTLD_LAZY);
-	if(!lib_addr) {
+	/*lib_addr = dlopen(libname,RTLD_LAZY);
+	/*if(!lib_addr) {
 		PyErr_SetString(ExcmemError,"Couln't resolve library");
 		return NULL;
-	}
+	}*/
 
-	sym_addr = dlsym(lib_addr,symname);
+	sym_addr = dlsym(0,symname);
 	if(!sym_addr) {
 		PyErr_SetString(ExcmemError,"Couldn't resolve symbol");
 		return NULL;
@@ -183,7 +183,7 @@ initexcmem(void)
 		return;
 	}
 
-	if (mprotect(startExcMemory,4096,PROT_READ|PROT_WRITE|PROT_EXEC)) {
+	if (0) { //mprotect(startExcMemory,4096,PROT_READ|PROT_WRITE|PROT_EXEC)) {
 		PyErr_SetString(PyExc_MemoryError,"Error protecting memory");
 		return;
 	}
