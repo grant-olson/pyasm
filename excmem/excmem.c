@@ -4,9 +4,12 @@
 This provides a basic interface to allocate executable memory.  
 This will become more important as W^X type protection gets 
 used more and more.  To be honest, I'm not sure if this is 
-even matters at this point.  It seems like (in windows at 
-least) the execute permission has no effect, only removing the 
+even matters at this point.  It seems like (in windows and
+linux) the execute permission has no effect, only removing the 
 write permission causes a fault.
+
+If so, should I just leverage the existing python allocation
+functions?
 
 Right now this is pretty much a stub, it should eventually 
 work more like a real allocator with a linked list of pages 
