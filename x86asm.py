@@ -11,6 +11,7 @@ at runtime instead of just generating coff files.
 
 I need to get the instruction tokenizer working for this to take off.
 """
+
 from x86tokenizer import (tokenizeInst,
                           REGISTER,OPCODE,COMMA,OPERAND,
                           LBRACKET,RBRACKET,NUMBER,SYMBOL,STRING,
@@ -19,8 +20,9 @@ from x86tokenizer import (tokenizeInst,
 from x86inst import mnemonicDict, rb, rw, rd, instructionInstance
 
 from tokenize import Number
-import logging, types, re
+import types, re
 
+from pyasm.loggers import x86asmLogger, x86sourceLogger, x86apiLogger
 class x86asmError(Exception): pass
 
 ###########################################################
@@ -555,9 +557,12 @@ class assembler:
                 inst.Address = currentAddress
                 currentAddress += inst.GetInstructionSize()
                 newInsts.append(inst)
+                x86asmLogger.info(inst.OpText())
                 cp.CodePatchins.extend(inst.GetSymbolPatchins())
             else: # a label
                 i.Address = currentAddress
+                logMsg = "  %08X: %s" % (i.Address,i.Name)
+                x86asmLogger.info(logMsg)
                 cp.CodeSymbols.append((i.Name,i.Address,i.Type))
 
         currentAddress = self.DataStartAddress
