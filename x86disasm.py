@@ -33,8 +33,9 @@ class x86Block:
         return self.unpackFromString("<%ds" % length, length)        
         
 class x86Disassembler:
-    def __init__(self,code):
+    def __init__(self,code,addr=0x40000000):
         self.Code = code
+        self.Address = addr
 
     def disasm(self):
         while self.Code.Data[self.Code.Location:]:
@@ -62,6 +63,8 @@ class x86Disassembler:
                 modRM = struct.unpack("<B", self.Code.Data[self.Code.Location])[0]
                 suffixSize = instInst.GetSuffixSize(modRM)
             instInst.LoadData(self.Code.GetString(suffixSize))
+            instInst.Address = self.Address
             print instInst.OpText()
+            self.Address += instInst.GetInstructionSize()
             
 

@@ -122,7 +122,7 @@ class ModRM:
             self.Mode = self.Mode >> 6
 
     def SaveToByte(self):
-        return self.Mod << 6 + self.RegOp << 3 + self.RM
+        return (self.Mode << 6) + (self.RegOp << 3) + self.RM
 
     def HasSIB(self):
         if self.Mode in (0,1,2) and self.RM == 4:
@@ -303,6 +303,7 @@ class instructionInstance:
     prefixes and suffixes
     """
     def __init__(self,inst):
+        self.Address = 0x0
         self.Instruction = inst
         self.Prefixes = []
         self.ModRM = None
@@ -315,19 +316,24 @@ class instructionInstance:
         size = 0
         if self.Instruction.HasModRM:
             size += 1
-            if modrm == None:
+            if self.ModRM:
+                mrm = self.ModRM
+            elif modrm == None:
                 raise OpcodeNeedsModRM()
             else:
                 mrm = ModRM(modrm)
-                if mrm.HasSIB():
-                    size += 1
-                if mrm.GetDisplacementSize():
-                    size += mrm.GetDisplacementSize()
+            if mrm.HasSIB():
+                size += 1
+            if mrm.GetDisplacementSize():
+                size += mrm.GetDisplacementSize()
         if self.Instruction.HasDisplacement:
             size += self.Instruction.DisplacementSize
         if self.Instruction.HasImmediate:
             size += self.Instruction.ImmediateSize
         return size
+
+    def GetInstructionSize(self):
+        return len(self.Instruction.Opcode) + self.GetSuffixSize()
     
     def LoadData(self, data):
         first,rest = '',data
@@ -380,34 +386,82 @@ class instructionInstance:
         if rest:
             raise RuntimeError("Couldn't unpack all data")
 
-    def OpText(self):
+    def DataText(self,data,size,skip=False):
         retVal = ''
+        if skip:
+            return retVal
+        if size >= 1:
+            retVal += "%02X " % (data % 0xFF)
+        
+    def OpText(self):
+        size = 0
+        retVal = ''
+        
+        retVal += "  %08X: " % self.Address
+        for i in self.Instruction.Opcode:
+            retVal += "%02X " % i
+            size += 1
+        if self.ModRM:
+            retVal += "%02X " % self.ModRM.SaveToByte()
+            size += 1
+            if self.ModRM.HasSIB():
+                retVal += "%02X " % self.SIB
+                size += 1
+            disp = self.ModRM.GetDisplacementSize()
+            if disp == 1:
+                retVal += "%02X " % self.Displacement
+                size += 1
+            elif disp == 4:
+                #TODO: FIX
+                retVal += "%02X %02X %02X %02X " % (
+                    self.Displacement, self.Displacement,
+                    self.Displacement, self.Displacement,)
+                size += 4
+        if self.Instruction.HasDisplacement:
+            #TODO: FIX
+            retVal += "%02X %02X %02X %02X " % (
+                    self.Displacement, self.Displacement,
+                    self.Displacement, self.Displacement,)
+            size += 4
+        if self.Instruction.HasImmediate:
+            #TODO: FIX
+            retVal += "%02X %02X %02X %02X " % (
+                    self.Immediate, self.Immediate,
+                    self.Immediate, self.Immediate,)
+            size += 4
+            
+        retVal += "   " * (8-size)
+
+        opcodeStr, operandStr = "",""        
         for typ,val in self.Instruction.InstructionDef:
             if typ == OPCODE:
-                retVal += val + " "
+                opcodeStr += val + " "
             elif typ == COMMA:
-                retVal += val
+                operandStr += val
             elif typ == REGISTER:
-                retVal += val
+                operandStr += val
             elif typ == OPERAND:
                 if val in immediate:
-                    retVal += "%08X" % self.Immediate
+                    operandStr += "%08X" % self.Immediate
                 elif val in displacement:
-                    retVal += "%08X" % self.Displacement
+                    operandStr += "%08X" % self.Displacement
                 elif val in ('r8','r16','r32','mm','xmm','/digit','REG'):
-                    retVal += self.ModRM.RegOpString(val)
+                    operandStr += self.ModRM.RegOpString(val)
                 elif val in ('r/m8','r/m16','r/m32'):
-                    retVal += self.ModRM.RMString(val)
+                    operandStr += self.ModRM.RMString(val)
                 elif val in ('m','m8','m16','m32'):
                     tmpVal = self.ModRM.RMString(val)
                     tmpVal = tmpVal.replace("disp8", "%X" % self.Displacement)
                     tmpVal = tmpVal.replace("disp32", "%X" % self.Displacement)
-                    retVal += tmpVal
+                    operandStr += tmpVal
                 else:
                     # should check for other types
-                    retVal += val
+                    operandStr += val
+                
             else:
                 raise RuntimeError("Invalid op type[%s %s]" % (typ,val))
+            
+        retVal += "%-10s%-10s" % (opcodeStr, operandStr)
         return retVal
     
 i("04 ib", "ADD AL,imm8", "Add imm8 to AL")
