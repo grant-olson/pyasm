@@ -76,9 +76,47 @@ class LogRecordSocketReceiver(SocketServer.ThreadingTCPServer):
                 self.handle_request()
             abort = self.abort
 
+# My stuff
 
 import thread, Tkinter
 
+class pyasmDebuggerWindow:
+    def __init__(self):
+        self.root = Tkinter.Tk()
+        self.l = Tkinter.Label(self.root,text="pyasm debugging console")
+        self.l.pack()
+        
+        self.x86asmTextbox = self.loggerTextbox('pyasm.x86.asm')
+        self.x86apiTextbox = self.loggerTextbox('pyasm.x86.api')
+        self.x86srcTextbox = self.loggerTextbox('pyasm.x86.source')
+        self.debugTextbox = self.loggerTextbox('pyasm.debug')
+        
+        self.activeBox = self.x86asmTextbox
+        self.x86asmTextbox.pack()
+
+    def changePane(self,textbox):
+        self.activeBox.pack_forget()
+        textbox.pack()
+        self.activeBox = textbox
+        
+    def loggerTextbox(self,loggername):
+        logTextbox = Tkinter.Text(self.root,font='courier')
+        logTextbox.insert(Tkinter.INSERT, "%s CONSOLE\n" % loggername)
+        logTextbox.insert(Tkinter.INSERT, "==============\n\n")
+        logTextbox.pack_forget()
+
+        ts = TkTextLogStream(logTextbox)
+        logging.getLogger(loggername).addHandler(logging.StreamHandler(ts))
+
+        button = Tkinter.Button(self.root,text=loggername,
+                                command=lambda:self.changePane(logTextbox))
+        button.pack()
+
+        return logTextbox
+    
+    def mainloop(self):
+        Tkinter.mainloop()
+        
 class TkTextLogStream:
     def __init__(self,textbox):
         self.textbox = textbox
@@ -94,21 +132,10 @@ def main():
     tcpserver = LogRecordSocketReceiver()
     print "About to start TCP server..."
     thread.start_new_thread(tcpserver.serve_until_stopped,())
-    print "bar"
 
+    pdw = pyasmDebuggerWindow()
+    pdw.mainloop()
     
-    
-    root = Tkinter.Tk()
-    l = Tkinter.Label(root,text="Hello, World!")
-    l.pack()
-    text = Tkinter.Text(root,font='courier')
-    text.insert(Tkinter.INSERT, "foo\n")
-    text.pack()
-
-    ts = TkTextLogStream(text)
-    logging.getLogger('pyasm.x86.asm').addHandler(logging.StreamHandler(ts))
-    
-    Tkinter.mainloop()    
     
 if __name__ == "__main__":
     main()
