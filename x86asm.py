@@ -314,6 +314,7 @@ class procedure:
 stringRe = re.compile("\s*" + symbolRe + "\s*((?P<q>'|\")(?P<s>.*)(?P=q))?$",re.DOTALL)
 procRe = re.compile("\s*" + symbolRe +"\s*(?P<TYPE>STDCALL|CDECL|PYTHON)?$")
 varRe = re.compile("\s*" + symbolRe + "\s*(?P<NUM>" + Number[1:] + "?$")
+callRe = re.compile("\s*" + symbolRe + "\s*(?P<REST>.*)")
 
 class assembler:
     def __init__(self):
@@ -467,6 +468,24 @@ class assembler:
             raise x86asmError("Couldn't parse assembler directive %s" % repr(params))
         self.EndProc()
 
+    def CALL(self,params):
+        matches = callRe.match(params)
+        if not matches:
+            raise x86asmError("Couldn't parse assembler directive %s" % repr(params))
+        matches = matches.groupdict()
+        proc,rest = matches['SYMBOL'],matches['REST']
+        params = []
+
+        while rest:
+            matches = callRe.match(rest).groupdict()
+            first,rest = matches['SYMBOL'],matches['REST']
+            params.append(first)
+
+        params.reverse() # push from right to left
+        for param in params:
+            self.AI("PUSH %s" % param)
+        self.AI("CALL %s" % proc)
+    
     def CHARS(self,params):
         matches = stringRe.match(params)
         if not matches:
