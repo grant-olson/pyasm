@@ -84,8 +84,8 @@ numberRe = '(?P<NUMBER>[\+\-]?(0x[0-9A-Fa-f]+|[0-9]+))'
 symbolRe = '(?P<SYMBOL>[a-z_]+)'
 
 #define final re's
-instructionDefRe = re.compile("(?:\s*(?:%s|%s|%s|%s)(?P<rest>.*))" % \
-                           (defRegRe,operandRe,opcodeRe,commaRe))
+instructionDefRe = re.compile("(?:\s*(?:%s|%s|%s|%s|%s|%s)(?P<rest>.*))" % \
+                           (defRegRe,operandRe,opcodeRe,commaRe,lbracketRe,rbracketRe))
 
 instructionRe = re.compile("(?:\s*(?:%s|%s|%s|%s|%s|%s|%s)(?P<rest>.*))" % \
                            (lbracketRe,rbracketRe,instRegRe,

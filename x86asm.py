@@ -99,6 +99,9 @@ def possibleIndirect(*toks):
         possibleVals.append((OPERAND,'r/m8'))
     elif operand[0] == REGISTER:        
         regName = operand[1]
+        if rest[0][0] == RBRACKET:
+            #Special case
+            possibleVals.append((REGISTER, '[%s]' % regName))
         
         if regName in rb:
             possibleVals.append((OPERAND, 'r/m8'))
@@ -122,6 +125,7 @@ def possibleIndirect(*toks):
                 yldVal = [val]
                 yldVal.extend(restMatches)
                 yield yldVal
+
 
 possibleLookups = {
     REGISTER:possibleRegister,
@@ -177,10 +181,20 @@ class labelDict(dict):
             dict.__setitem__(self,key,val)
 
 class data:
-    def __init__(self, dat):
+    def __init__(self,name,dat,size=0):
+        self.Name = name
         self.Data = dat
+        self.Size = size
         self.Address = 0x0
 
+class codePackage:
+    def __init__(self):
+        self.Code = ''
+        self.CodeSymbols = []
+        self.CodePatchins = []
+        self.Data = ''
+        self.DataSymbols = []
+        
 class procedure:
     def __init__(self,name):
         self.Name = name
@@ -254,13 +268,14 @@ class assembler:
         self.Data = []
         self.Labels = {}
         self.CurrentProcedure = None
-        self.StartAddress = 0x04000000
+        self.StartAddress = 0x0
+        self.DataStartAddress = 0x0
 
     def registerLabel(self,lbl):
         if self.Labels.has_key(lbl.Name):
             raise x86asmError("Duplicate Label Registration [%s]" % lbl.Name)
         self.Labels[lbl.Name] = lbl
-        self.Instructions.append(lbl)
+
 
     #
     # Write assmebly code
@@ -300,10 +315,9 @@ class assembler:
     def AddData(self,name,dat):
         lbl = label(name)
         self.registerLabel(lbl)
-        self.Data.append(lbl)
-        self.Data.append(data(dat))
+        self.Data.append(data(name,dat,len(dat)))
 
-    def AD(self,name,dat):
+    def ADStr(self,name,dat):
         self.AddData(name,dat)
 
     def AddProcedure(self,name):
@@ -342,9 +356,11 @@ class assembler:
     # start actual compilation code
     #
     def pass1(self):
+        cp = codePackage()
         newInsts = []
-        patchIns = []
-        symbols = []
+        newData = []
+        #patchIns = []
+        #symbols = []
         currentAddress = self.StartAddress
         for i in self.Instructions:
             if type(i) == types.TupleType: # and instruction to lookup
@@ -353,26 +369,25 @@ class assembler:
                 inst.Address = currentAddress
                 currentAddress += inst.GetInstructionSize()
                 newInsts.append(inst)
-                patchIns.extend(inst.GetSymbolPatchins())
+                cp.CodePatchins.extend(inst.GetSymbolPatchins())
             else: # a label
                 i.Address = currentAddress
-                symbols.append((i.Name,i.Address))
-        for i in newInsts:
-            if isinstance(i, instructionInstance):
-                print i.OpText()
-            else:
-                print "%08X: %s" % (i.Address, i.Name)
-        print "PATCHINS: "
-        for patch in patchIns:
-            print "%s => 0x%08X" % patch
-        print
-        print "SYMBOLS: "
-        for sym in symbols:
-            print "%s => 0x%08X" % sym
+                cp.CodeSymbols.append((i.Name,i.Address))
+
+        currentAddress = self.DataStartAddress
+        newData = []
+        for d in self.Data:
+            d.Address = currentAddress
+            newData.append(d.Data)
+            cp.DataSymbols.append( (d.Name,d.Address) )
+            currentAddress += d.Size            
+        cp.Code = ''.join([i.OpDataAsString() for i in newInsts])
+        cp.Data = ''.join([d for d in newData])
+        return cp
             
             
     def Compile(self):
-        self.pass1()
+        return self.pass1()
 
 if __name__ == '__main__':
     a = assembler()

@@ -138,8 +138,18 @@ def longToBytes(long, bytes=4):
     retVal = [ord(x) for x in encode_long(long)]
     while len(retVal) < bytes:
         retVal.append(0)
+    if len(retVal) > bytes:
+        good,bad = retVal[:bytes],retVal[bytes:]
+        for x in bad:
+            if x:
+                raise x86instError("Failed converting long '%s' to bytes '%s'" % \
+                                   (long, retVal))
+        retVal = good
     return tuple(retVal)
 
+def longToString(long, bytes=4):
+    return ''.join([chr(c) for c in longToBytes(long,bytes)])
+    
 def longToBytesRepr(long,bytes=4):
     retVal = ""
     for x in longToBytes(long,bytes):
@@ -460,7 +470,18 @@ class instructionInstance:
         while 1:
             logging.info("TOK COMPARES: %s => %s" % (firstDef, firstTok))
             if firstDef[0] in (OPCODE, COMMA, REGISTER):
-                if firstDef[0] != firstTok[0]:
+                #TODO: Can we handle this special case better?
+                #      The special case is a m8/16/32 value that is constant
+                #      and doesn't have an RM.
+                if firstDef[0] == REGISTER and firstDef[1][0] == '[' and \
+                   firstTok[0] == LBRACKET:
+                    firstTok, restTok = restTok[0],restTok[1:]
+                    if firstTok[1] == firstDef[1][1:-1]:
+                        firstTok, restTok = restTok[0],restTok[1:]
+                    else:
+                        raise x86instError("TOKEN MISMATCH '%s' '%s'" % \
+                                           (firstDef,firstTok))
+                elif firstDef[0] != firstTok[0]:
                     raise x86instError("These should be equal '%s' '%s'" % \
                                        (firstDef, firstTok))
             elif firstDef[0] == OPERAND:
@@ -544,35 +565,43 @@ class instructionInstance:
             firstTok, restTok = restTok[0],restTok[1:]
         self.ModRM = tmpModRM
         
+    def OpDataAsString(self):
+        """
+        Return the OPCODE as a string.
+        """
+        retVal = ''
+        for i in self.Instruction.Opcode:
+            retVal += chr(i)
+        if self.Instruction.HasModRM:
+            retVal += chr(self.ModRM.SaveToByte())
+            if self.ModRM.HasSIB():
+                retVal += chr(self.SIB)
+            disp = self.ModRM.GetDisplacementSize()
+            if disp == 1:
+                retVal += ''.join(longToString(self.Displacement,1))
+            elif disp == 4:
+                retVal += ''.join(longToString(self.Displacement,4))
+        if self.Instruction.HasDisplacement:
+            retVal += ''.join(longToString(self.Displacement,self.Instruction.DisplacementSize))
+        if self.Instruction.HasImmediate:
+            retVal += ''.join(longToString(self.Immediate,self.Instruction.ImmediateSize))
+
+        if len(retVal) != self.GetInstructionSize():
+            raise x86instError("Invalid Instruction Size '%s' '%s'" % (self.Instruction.InstructionString, \
+                                                                       retVal))
+        return retVal
+    
+            
     def OpText(self):
         size = 0
         retVal = ''
         
         retVal += "  %08X: " % self.Address
-        for i in self.Instruction.Opcode:
-            retVal += "%02X " % i
-            size += 1
-        if self.Instruction.HasModRM:
-            retVal += "%02X " % self.ModRM.SaveToByte()
-            size += 1
-            if self.ModRM.HasSIB():
-                retVal += "%02X " % self.SIB
-                size += 1
-            disp = self.ModRM.GetDisplacementSize()
-            if disp == 1:
-                retVal += longToBytesRepr(self.Displacement,1)
-                size += 1
-            elif disp == 4:
-                retVal += longToBytesRepr(self.Displacement,4)
-                size += 4
-        if self.Instruction.HasDisplacement:
-            retVal += longToBytesRepr(self.Displacement,self.Instruction.DisplacementSize)
-            size += self.Instruction.DisplacementSize
-        if self.Instruction.HasImmediate:
-            retVal += longToBytesRepr(self.Immediate,self.Instruction.ImmediateSize)
-            size += self.Instruction.ImmediateSize
-            
-        retVal += "   " * (8-size)
+
+        ds = self.OpDataAsString()
+        for c in ds:
+            retVal += "%02X " % ord(c)
+        retVal += "   " * (8-len(ds))
 
         opcodeStr, operandStr = "",""        
         for typ,val in self.Instruction.InstructionDef:
@@ -592,6 +621,9 @@ class instructionInstance:
                 elif val in ('r8','r16','r32','mm','xmm','/digit','REG'):
                     operandStr += self.ModRM.RegOpString(val)
                 elif val in ('r/m8','r/m16','r/m32'):
+                    if not self.ModRM:
+                        raise x86instError("No RM found when we need one '%s'"  % \
+                                           self.Instruction.InstructionString)
                     rmString = self.ModRM.RMString(val)
                     if rmString.find('disp8') >= 0:
                         rmString = rmString.replace('disp8',"0x%X" % \
@@ -821,8 +853,8 @@ i("F3 AD",  "REP LODS AX", "Load (E)CX words from DS:[(E)SI] to AX.")
 i("F3 AD", "REP LODS EAX", "Load (E)CX doublewords from DS:[(E)SI] to EAX.")
 i("F3 AA", "REP STOS m8", "Fill (E)CX bytes at ES:[(E)DI] with AL.")
 i("F3 AB", "REP STOS m16", "Fill (E)CX words at ES:[(E)DI] with AX.")
-i("F3 AB", "REP STOS m32", "Fill (E)CX words at ES:[(E)DI] with AX.")
-#i("F3 AB", "REP STOS [EDI]" ,"Fill (E)CX doublewords at ES:[(E)DI] with EAX.")
+#i("F3 AB", "REP STOS m32", "Fill (E)CX words at ES:[(E)DI] with AX.")
+i("F3 AB", "REP STOS [EDI]" ,"Fill (E)CX doublewords at ES:[(E)DI] with EAX.")
 i("F3 A6", "REPE CMPS m8,m8", "Find nonmatching bytes in ES:[(E)DI] and DS:[(E)SI].")
 i("F3 A7", "REPE CMPS m16,m16", "Find nonmatching words in ES:[(E)DI] and DS:[(E)SI].")
 i("F3 A7", "REPE CMPS m32,m32","Find nonmatching doublewords in ES:[(E)DI] and DS:[(E)SI].")
