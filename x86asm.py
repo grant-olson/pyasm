@@ -13,12 +13,13 @@ I need to get the instruction tokenizer working for this to take off.
 """
 from x86tokenizer import (tokenizeInst,
                           REGISTER,OPCODE,COMMA,OPERAND,
-                          LBRACKET,RBRACKET,NUMBER,SYMBOL)
+                          LBRACKET,RBRACKET,NUMBER,SYMBOL,
+                          symbolRe)
 
 from x86inst import mnemonicDict, rb, rw, rd, instructionInstance
 
-import logging
-import types
+from tokenize import Number
+import logging, types, re
 
 class x86asmError(Exception): pass
 
@@ -183,9 +184,10 @@ class labelRef:
         self.Name = name
         
 class label:
-    def __init__(self, name):
+    def __init__(self, name,typ=0):
         self.Name = name
         self.Address = 0x0
+        self.Type = typ
 
 class labelDict(dict):
     def __setitem__(self,key,val):
@@ -216,10 +218,10 @@ class codePackage:
         self.Data = ''
         self.DataSymbols = []
 
-STDCALL, CDECL = range(1,3)
+STDCALL, CDECL, PYTHON = range(1,4)
 
 class procedure:
-    def __init__(self,name, typ=STDCALL):
+    def __init__(self,name, typ=CDECL):
         self.Name = name
         self.Address = 0x0
 
@@ -298,7 +300,14 @@ class procedure:
             a.AI("RET %s" % (self.ArgOffset - 8))
         else:
             a.AI("RET")
-        
+
+#
+# assembler directive re's
+#
+stringRe = re.compile(symbolRe + "\s*((?P<q>'|\")(?P<s>.*)(?P=q))?$",re.DOTALL)
+procRe = re.compile(symbolRe +"\s*(?P<TYPE>STDCALL|CDECL|PYTHON)?$")
+varRe = re.compile(symbolRe + "\s*(?P<NUM>" + Number[1:] + "?$")
+
 class assembler:
     def __init__(self):
         self.Instructions = []
@@ -346,8 +355,8 @@ class assembler:
             self.CurrentProcedure.EmitProcStartCode(self)
         self.AddInstruction(inst)
 
-    def AddInstructionLabel(self,name):
-        lbl = label(name)
+    def AddInstructionLabel(self,name,typ=0):
+        lbl = label(name,typ)
         self.registerLabel(lbl)
         self.Instructions.append(lbl)
 
@@ -366,21 +375,21 @@ class assembler:
         if self.CurrentProcedure: # didn't emit procedure cleanup code
             raise x86asmError("Must end procedure '%s' before starting proc " \
                               " '%s'" % (self.CurrentProcedure.Name, name))
-        self.AddInstructionLabel(name)
+        self.AddInstructionLabel(name,typ)
         proc = procedure(name,typ)  
         self.CurrentProcedure = proc
 
     def AP(self,name,typ=STDCALL):
-        self.AddProcedure(name)
+        self.AddProcedure(name,typ)
 
-    def AddArgument(self,name):
-        self.CurrentProcedure.AddArg(name)
+    def AddArgument(self,name,size=4):
+        self.CurrentProcedure.AddArg(name,size)
 
-    def AA(self,name):
-        self.AddArgument(name)
+    def AA(self,name,size=4):
+        self.AddArgument(name,size)
 
-    def AddLocal(self,name):
-        self.CurrentProcedure.AddLocal(name)
+    def AddLocal(self,name,size=4):
+        self.CurrentProcedure.AddLocal(name,size)
 
     def EndProc(self):
         if self.CurrentProcedure:
@@ -401,14 +410,101 @@ class assembler:
     #
 
     #
+    # handle assembler directives
+    #
+    def getVarNameAndSize(t,s):
+        matches = varRe.match(s)
+        if not matches:
+            raise x86asmError("Couldn't parse %s assembler directive %s" % (t,repr(s)))
+        matches = matches.groupdict()
+        name = matches['SYMBOL']
+        if matches['NUM']:
+            size = eval(matches['NUM'])
+        else:
+            size = 4 #default to DWORD
+        return name,size
+    
+    def PROC(self,params):
+        matches = procRe.match(params)
+        if not matches:
+            x86asmError("Couldn't parse PROC assembler directive %s" % repr(params))
+        matches = matches.groupdict()
+        
+        name = matches['SYMBOL']
+        
+        if matches['TYPE']:
+            t = matches['TYPE']
+            if t == 'CDECL':
+                c = CDECL
+            elif t == 'STDCALL':
+                c = STDCALL
+            elif t == 'PYTHON':
+                c = PYTHON
+            else:
+                raise x86asmError("Couldn't parse PROC assembler directive %s" % repr(params))
+        else:
+            c = CDECL
+            
+        self.AddProcedure(name,c)
+
+    def ARG(self,params):
+        name,size = self.getVarNameAndSize(params)
+        self.AddArgument(name,size)
+
+    def LOCAL(self,params):
+        name,size = self.getVarNameAndSize(params)
+        self.AddLocal(name,size)
+
+    def ENDPROC(self,params):
+        if params:
+            raise x86asmError("Couldn't parse assembler directive %s" % repr(params))
+        self.EndProc()
+
+    def CHARS(self,params):
+        matches = stringRe.match(params)
+        if not matches:
+            raise x86asmError("Couldn't parse assembler directive %s" % repr(params))
+        matches = matches.groupdict()
+        name,s = matches['SYMBOL'], matches['s']
+        if not (name and s):
+            raise x86asmError("Couldn't parse assembler directive %s" % repr(params))
+        self.ADStr(name,s)
+
+    def COMMENT(self,params):
+        pass
+    
+    def dispatchDirective(self,s):
+        firstSpace = s.find(' ')
+        if firstSpace < 0: 
+            directive,params = s[1:],''
+        else:
+            directive,params = s[1:firstSpace],s[firstSpace+1:]
+        getattr(self,directive)(params)
+        
+
+    def dispatchStatement(self,s):
+        self.AddInstruction(s)
+
+    def DispatchString(self,s):
+        s = s.strip()
+        if not s:
+            pass #blank line
+        elif s[0] == "!":
+            self.dispatchDirective(s)
+        else:
+            self.dispatchStatement(s)
+
+    def __call__(self,s):
+        self.DispatchString(s)
+        
+    #
     # start actual compilation code
     #
     def pass1(self):
         cp = codePackage()
         newInsts = []
         newData = []
-        #patchIns = []
-        #symbols = []
+
         currentAddress = self.StartAddress
         for i in self.Instructions:
             if type(i) == types.TupleType: # and instruction to lookup
@@ -420,7 +516,7 @@ class assembler:
                 cp.CodePatchins.extend(inst.GetSymbolPatchins())
             else: # a label
                 i.Address = currentAddress
-                cp.CodeSymbols.append((i.Name,i.Address))
+                cp.CodeSymbols.append((i.Name,i.Address,i.Type))
 
         currentAddress = self.DataStartAddress
         newData = []
@@ -436,6 +532,8 @@ class assembler:
             
             
     def Compile(self):
+        if self.CurrentProcedure:
+            raise x86asmError("Never ended procedure '%s'" % self.CurrentProcedure.Name)
         return self.pass1()
 
 if __name__ == '__main__':

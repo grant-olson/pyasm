@@ -3,22 +3,33 @@
 
 from x86inst import RELATIVE,DIRECT
 from x86PackUnpack import ulongToString
+from x86asm import PYTHON
+import pyasm.excmem as excmem
 
-import logging
 
-import win32api
-python24Handle = win32api.GetModuleHandle("python24")
+import logging, sys
 
-def WindowsRuntimeResolve(funcName):
-    return win32api.GetProcAddress(python24Handle,funcName)
+if sys.platform == 'win32':
+    import win32api, pywintypes
+    from sys import dllhandle
+    python24Handle = win32api.GetModuleHandle("python24")
 
-#we'll eventually have linux logic here as well
-runtimeResolve = WindowsRuntimeResolve
+    def runtimeResolve(funcName):
+        try:
+            addr = win32api.GetProcAddress(dllhandle,funcName)
+        except pywintypes.error:
+            raise RuntimeError("Unable to resolve external symbol '%s'" % funcName)
+        return addr
+elif sys.platform in ('linux'):
+    def runtimeResolve(funcName):
+        return pyasm.excmem.GetSymbolAddress("xxx",funcName)
+else:
+    raise RuntimeError("Don't know how to resolve external symbols for platform '%s'" % sys.platform)
+
 
 class CpToMemory:
-    def __init__(self,cp,memAccess):
+    def __init__(self,cp):
         self.cp = cp
-        self.memAccess = memAccess
         self.symbols = {}
         self.resolvedCode = ''
         
@@ -34,14 +45,15 @@ class CpToMemory:
         if glb is None:
             glb = globals()
         for proc in self.cp.CodeSymbols:
-            glb[proc[0]] = self.memAccess.BindFunctionAddress(proc[1] + self.codeAddr)
+            if proc[2] == PYTHON:
+                glb[proc[0]] = excmem.BindFunctionAddress(proc[1] + self.codeAddr)
             
     def MakeMemory(self,glb=None):
         if not glb:
             glb = globals()
             
-        self.codeAddr = self.memAccess.AllocateExecutableMemory(len(self.cp.Code))
-        self.dataAddr = self.memAccess.AllocateExecutableMemory(len(self.cp.Data))
+        self.codeAddr = excmem.AllocateExecutableMemory(len(self.cp.Code))
+        self.dataAddr = excmem.AllocateExecutableMemory(len(self.cp.Data))
 
         self.symbols = {}        
         for sym in self.cp.CodeSymbols:
@@ -67,8 +79,8 @@ class CpToMemory:
             
         assert len(self.resolvedCode) == len(self.cp.Code)
         
-        self.memAccess.LoadExecutableMemoryString(self.codeAddr,self.resolvedCode)
-        self.memAccess.LoadExecutableMemoryString(self.dataAddr,self.cp.Data)
+        excmem.LoadExecutableMemoryString(self.codeAddr,self.resolvedCode)
+        excmem.LoadExecutableMemoryString(self.dataAddr,self.cp.Data)
 
         
             

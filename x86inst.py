@@ -835,6 +835,8 @@ i("C6 /0", "MOV r/m8,imm8", "Move imm8 to r/m8")
 i("C7 /0", "MOV r/m16,imm16", "Move imm16 to r/m16")
 i("C7 /0", "MOV r/m32,imm32", "Move imm32 to r/m32")
 
+i("90","NOP","No operation.")
+
 i("8F /0", "POP r/m16", "Pop top of stack into m16; increment stack pointer.")
 i("8F /0", "POP r/m32", "Pop top of stack into m32; increment stack pointer.")
 i("58 +rw", "POP r16", "Pop top of stack into r16; increment stack pointer.")
