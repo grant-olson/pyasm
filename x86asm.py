@@ -77,7 +77,6 @@ if __name__ == '__main__':
     a.AI('CALL _printf')
     a.AI('ADD ESP,4')
     a.AI('XOR EAX,EAX')
-    a.AI('MOV [EAX+12],12')
     a.AI('RET')
 
     
