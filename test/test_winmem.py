@@ -7,13 +7,6 @@ from pyasm.x86asm import assembler, CDECL, STDCALL, PYTHON
 from pyasm.x86cpToMemory import CpToMemory
 
 class test_excmem(unittest.TestCase):
-    def test_excmem(self):
-        cp = pyasm.excmem.GetCurrentExecutablePosition()
-        self.assertEquals(cp, pyasm.excmem.AllocateExecutableMemory(4))
-        self.assertEquals(cp + 4, pyasm.excmem.GetCurrentExecutablePosition())
-        pyasm.excmem.LoadExecutableMemoryString(cp,"aaaa")
-        self.assertEquals(cp + 4, pyasm.excmem.GetCurrentExecutablePosition())
-
     def test_simple_function(self):
         a = assembler()
         a.ADStr("hello_world", "Hello world!\n\0")

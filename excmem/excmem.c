@@ -1,19 +1,11 @@
 /* Copyright 2004-2005 Grant T. Olson. See license.txt for terms.*/
 
 /*
-This provides a basic interface to allocate executable memory.  
-This will become more important as W^X type protection gets 
-used more and more.  To be honest, I'm not sure if this is 
-even matters at this point.  It seems like (in windows and
-linux) the execute permission has no effect, only removing the 
-write permission causes a fault.
+This provides a basic interface to allocate executable memory and
+create PyCFunction objects.
 
-If so, should I just leverage the existing python allocation
-functions?
-
-Right now this is pretty much a stub, it should eventually 
-work more like a real allocator with a linked list of pages 
-of memory that are allocated on an as-needed basis.
+I'm currently using PyMem_Malloc until I see a real working example
+of W^X heap protection on x86 platforms.
 
 Also need to decide how much memory we will want to free and
 how that should be implemented.
@@ -41,9 +33,6 @@ don't use WRITE and EXECUTE permissions at the same time.
 
 static PyObject *ExcmemError;
 
-void *startExcMemory;
-void *posExcMemory;
-
 
 static PyObject *
 excmem_LoadExecutableMemoryString(PyObject *self, PyObject *args)
@@ -68,8 +57,7 @@ excmem_AllocateExecutableMemory(PyObject *self, PyObject *args)
 	if (!PyArg_ParseTuple(args, "i", &requestedSize))
         return NULL;
 
-	pointerToMemory = (int)posExcMemory;
-	posExcMemory = (void*)(pointerToMemory + requestedSize);
+	pointerToMemory = (int)PyMem_Malloc(requestedSize);
 
 	return Py_BuildValue("i",pointerToMemory);
 }
@@ -77,7 +65,8 @@ excmem_AllocateExecutableMemory(PyObject *self, PyObject *args)
 static PyObject *
 excmem_GetCurrentExecutablePosition(PyObject *self, PyObject *args)
 {
-	return Py_BuildValue("i",(int)posExcMemory);
+	PyErr_SetString(ExcmemError,"Depreciated function!");
+	return 0;
 }
 
 static PyObject *
@@ -102,6 +91,7 @@ excmem_BindFunctionAddress(PyObject *self, PyObject *args)
 
 	return Py_BuildValue("O",func);
 }
+
 
 #ifndef MS_WINDOWS
 
@@ -168,24 +158,4 @@ initexcmem(void)
     Py_INCREF(ExcmemError);
 	PyModule_AddObject(m, "ExcmemError", ExcmemError);
 
-	/* Allocate executable memory */
-#ifdef MS_WINDOWS
-	startExcMemory = VirtualAlloc(NULL,4096,MEM_COMMIT,PAGE_EXECUTE_READWRITE);
-#else
-	startExcMemory = malloc(4096);
-	if (!startExcMemory) {
-		PyErr_SetString(PyExc_MemoryError,"Couldn't allocate memory!");
-		return;
-	}
-
-	if (0) { //mprotect(startExcMemory,4096,PROT_READ|PROT_WRITE|PROT_EXEC)) {
-		PyErr_SetString(PyExc_MemoryError,"Error protecting memory");
-		return;
-	}
-#endif
-
-
-	posExcMemory = startExcMemory;
-
-	/* End allocation of executable memory */
 }
