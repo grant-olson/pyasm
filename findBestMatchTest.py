@@ -132,6 +132,7 @@ class test_lookups(unittest.TestCase):
         testBestMatch("MOV EAX, 12")
         testBestMatch("MOV EAX,EBX")
         testBestMatch("MOV [EAX],12")
+        testBestMatch("MOV [EAX-4],12")
 
 if __name__ == '__main__':
     unittest.main()
