@@ -44,14 +44,14 @@ class OpcodeDict(dict):
                 lst = [item for item in lst if item.InstructionString.find('r/m32') == -1]
                 lst = [item for item in lst if item.InstructionString.find('imm32') == -1]
                 lst = [item for item in lst if item.InstructionString.find('rel32') == -1]
-                lst = [item for item in lst if item.InstructionString.find('mo32') == -1]
+                lst = [item for item in lst if item.InstructionString.find('m32') == -1]
                 lst = [item for item in lst if 'rd' not in item.OpcodeFlags]
             elif preferredSize == 32:
                 lst = [item for item in lst if item.InstructionString.find('r16') == -1]
                 lst = [item for item in lst if item.InstructionString.find('r/m16') == -1]
                 lst = [item for item in lst if item.InstructionString.find('imm16') == -1]
                 lst = [item for item in lst if item.InstructionString.find('rel16') == -1]
-                lst = [item for item in lst if item.InstructionString.find('mo16') == -1]
+                lst = [item for item in lst if item.InstructionString.find('m16') == -1]
                 lst = [item for item in lst if 'rw' not in item.OpcodeFlags]
             else:
                 raise RuntimeError("Invalid Preferred size")
@@ -81,7 +81,7 @@ opcodeFlags = ['/0','/1','/2','/3','/4','/5','/6','/7',
 
 instModRM = ['r/m8','r/m16','r/m32','r8','r16','r32']
 #mo is my name, intel just calls it m
-immediate = ['imm8','imm16','imm32','mo','mo8','mo16','mo32','mo64','mo128']
+immediate = ['imm8','imm16','imm32']
 
 
 displacement = ['rel8','rel16','rel32']
@@ -153,6 +153,18 @@ class ModRM:
         else:
             raise RuntimeError("Invalid Mode")
         return retVal
+
+    def GetDisplacementSize(self):
+        "We only know this at runtime with real values"
+        if self.Mode == 0 and self.RM == 5:
+            return 4
+        elif self.Mode == 1:
+            return 1
+        elif self.Mode == 2:
+            return 4
+        else:
+            return 0
+        
             
 opcodeRe = '(?P<opcode>[A-Z]+)'
 operandRe = '(?P<operand>[a-z/:0-9]+)'
@@ -309,6 +321,8 @@ class instructionInstance:
                 mrm = ModRM(modrm)
                 if mrm.HasSIB():
                     size += 1
+                if mrm.GetDisplacementSize():
+                    size += mrm.GetDisplacementSize()
         if self.Instruction.HasDisplacement:
             size += self.Instruction.DisplacementSize
         if self.Instruction.HasImmediate:
@@ -332,6 +346,19 @@ class instructionInstance:
                 first,rest = rest[:2],rest[2:]
                 self.Displacement = struct.unpack("<s",first)[0]
             elif self.Instruction.DisplacementSize == 4:
+                first,rest = rest[:4],rest[4:]
+                self.Displacement = struct.unpack('<l',first)[0]
+            else:
+                raise RuntimeError("Invalid Displacement size")
+
+        if self.Instruction.HasModRM:
+            dispSize = self.ModRM.GetDisplacementSize()
+            if dispSize == 0:
+                pass
+            elif dispSize == 1:
+                first,rest = rest[0],rest[1:]
+                self.Displacement = struct.unpack("<b",first)[0]
+            elif dispSize == 4:
                 first,rest = rest[:4],rest[4:]
                 self.Displacement = struct.unpack('<l',first)[0]
             else:
@@ -371,6 +398,11 @@ class instructionInstance:
                     retVal += self.ModRM.RegOpString(val)
                 elif val in ('r/m8','r/m16','r/m32'):
                     retVal += self.ModRM.RMString(val)
+                elif val in ('m','m8','m16','m32'):
+                    tmpVal = self.ModRM.RMString(val)
+                    tmpVal = tmpVal.replace("disp8", "%X" % self.Displacement)
+                    tmpVal = tmpVal.replace("disp32", "%X" % self.Displacement)
+                    retVal += tmpVal
                 else:
                     # should check for other types
                     retVal += val
@@ -417,8 +449,8 @@ i("3A /r", "CMP r8,r/m8", "Compare r/m8 with r8.")
 i("3B /r", "CMP r16,r/m16", "Compare r/m16 with r16.")
 i("3B /r", "CMP r32,r/m32", "Compare r/m32 with r32.")
 
-i("8D /r", "LEA r16,mo", "Store effective address for m in register r16.")
-i("8D /r", "LEA r32,mo", "Store effective address for m in register r32")
+i("8D /r", "LEA r16,m", "Store effective address for m in register r16.")
+i("8D /r", "LEA r32,m", "Store effective address for m in register r32")
 
 i("88 /r","MOV r/m8,r8","Move r8 to r/m8.")
 i("89 /r","MOV r/m16,r16","Move r16 to r/m16.")
@@ -464,33 +496,34 @@ i("06", "PUSH ES", "PUsh ES")
 i("0F A0", "PUSH FS", "Push FS.")
 i("0F A8", "PUSH GS", "Push GS.")
 
-i("F3 6C", "REP INS mo8,DX" ,"Input (E)CX bytes from port DX into ES:[(E)DI].")
-i("F3 6D", "REP INS mo16,DX", "Input (E)CX words from port DX into ES:[(E)DI].")
-i("F3 6D", "REP INS mo32,DX", "Input (E)CX doublewords from port DX into ES:[(E)DI].")
-i("F3 A4", "REP MOVS mo8,mo8", "Move (E)CX bytes from DS:[(E)SI] to ES:[(E)DI].")
-i("F3 A5", "REP MOVS mo16,mo16","Move (E)CX words from DS:[(E)SI] to ES:[(E)DI].")
-i("F3 A5", "REP MOVS mo32,mo32", "Move (E)CX doublewords from DS:[(E)SI] to ES:[(E)DI].")
+i("F3 6C", "REP INS m8,DX" ,"Input (E)CX bytes from port DX into ES:[(E)DI].")
+i("F3 6D", "REP INS m16,DX", "Input (E)CX words from port DX into ES:[(E)DI].")
+i("F3 6D", "REP INS m32,DX", "Input (E)CX doublewords from port DX into ES:[(E)DI].")
+i("F3 A4", "REP MOVS m8,m8", "Move (E)CX bytes from DS:[(E)SI] to ES:[(E)DI].")
+i("F3 A5", "REP MOVS m16,m16","Move (E)CX words from DS:[(E)SI] to ES:[(E)DI].")
+i("F3 A5", "REP MOVS m32,m32", "Move (E)CX doublewords from DS:[(E)SI] to ES:[(E)DI].")
 i("F3 6E", "REP OUTS DX,r/m8","Output (E)CX bytes from DS:[(E)SI] to port DX.")
-i("F3 6F", "REP OUTS DX,r/mo16","Output (E)CX words from DS:[(E)SI] to port DX.")
-i("F3 6F", "REP OUTS DX,r/mo32", "Output (E)CX doublewords from DS:[(E)SI] to port DX.")
+i("F3 6F", "REP OUTS DX,r/m16","Output (E)CX words from DS:[(E)SI] to port DX.")
+i("F3 6F", "REP OUTS DX,r/m32", "Output (E)CX doublewords from DS:[(E)SI] to port DX.")
 i("F3 AC", "REP LODS AL" ,"Load (E)CX bytes from DS:[(E)SI] to AL.")
 i("F3 AD",  "REP LODS AX", "Load (E)CX words from DS:[(E)SI] to AX.")
 i("F3 AD", "REP LODS EAX", "Load (E)CX doublewords from DS:[(E)SI] to EAX.")
-i("F3 AA", "REP STOS mo8", "Fill (E)CX bytes at ES:[(E)DI] with AL.")
-i("F3 AB", "REP STOS mo16", "Fill (E)CX words at ES:[(E)DI] with AX.")
-i("F3 AB", "REP STOS mo32","Fill (E)CX doublewords at ES:[(E)DI] with EAX.")
-i("F3 A6", "REPE CMPS mo8,mo8", "Find nonmatching bytes in ES:[(E)DI] and DS:[(E)SI].")
-i("F3 A7", "REPE CMPS mo16,mo16", "Find nonmatching words in ES:[(E)DI] and DS:[(E)SI].")
-i("F3 A7", "REPE CMPS mo32,mo32","Find nonmatching doublewords in ES:[(E)DI] and DS:[(E)SI].")
-i("F3 AE", "REPE SCAS mo8",  "Find non-AL byte starting at ES:[(E)DI].")
-i("F3 AF", "REPE SCAS mo16", "Find non-AX word starting at ES:[(E)DI].")
-i("F3 AF", "REPE SCAS mo32", "Find non-EAX doubleword starting at ES:[(E)DI].")
-i("F2 A6", "REPNE CMPS mo8,mo8", "Find matching bytes in ES:[(E)DI] and DS:[(E)SI].")
-i("F2 A7", "REPNE CMPS mo16,mo16", "Find matching words in ES:[(E)DI] and DS:[(E)SI].")
-i("F2 A7", "REPNE CMPS mo32,mo32", "Find matching doublewords in ES:[(E)DI] and DS:[(E)SI].")
-i("F2 AE", "REPNE SCAS mo8", "Find AL, starting at ES:[(E)DI].")
-i("F2 AF", "REPNE SCAS mo16", "Find AX, starting at ES:[(E)DI].")
-i("F2 AF", "REPNE SCAS mo32", "Find EAX, starting at ES:[(E)DI].")
+i("F3 AA", "REP STOS m8", "Fill (E)CX bytes at ES:[(E)DI] with AL.")
+i("F3 AB", "REP STOS m16", "Fill (E)CX words at ES:[(E)DI] with AX.")
+i("F3 AB", "REP STOS EDI" ,"test")# TODO: FIX PROPERLY
+#m32","Fill (E)CX doublewords at ES:[(E)DI] with EAX.")
+i("F3 A6", "REPE CMPS m8,m8", "Find nonmatching bytes in ES:[(E)DI] and DS:[(E)SI].")
+i("F3 A7", "REPE CMPS m16,m16", "Find nonmatching words in ES:[(E)DI] and DS:[(E)SI].")
+i("F3 A7", "REPE CMPS m32,m32","Find nonmatching doublewords in ES:[(E)DI] and DS:[(E)SI].")
+i("F3 AE", "REPE SCAS m8",  "Find non-AL byte starting at ES:[(E)DI].")
+i("F3 AF", "REPE SCAS m16", "Find non-AX word starting at ES:[(E)DI].")
+i("F3 AF", "REPE SCAS m32", "Find non-EAX doubleword starting at ES:[(E)DI].")
+i("F2 A6", "REPNE CMPS m8,m8", "Find matching bytes in ES:[(E)DI] and DS:[(E)SI].")
+i("F2 A7", "REPNE CMPS m16,m16", "Find matching words in ES:[(E)DI] and DS:[(E)SI].")
+i("F2 A7", "REPNE CMPS m32,m32", "Find matching doublewords in ES:[(E)DI] and DS:[(E)SI].")
+i("F2 AE", "REPNE SCAS m8", "Find AL, starting at ES:[(E)DI].")
+i("F2 AF", "REPNE SCAS m16", "Find AX, starting at ES:[(E)DI].")
+i("F2 AF", "REPNE SCAS m32", "Find EAX, starting at ES:[(E)DI].")
 
 i("C3", "RET", "Near return to calling procedure")
 i("CB", "RET", "Far Return to calling procedure")
