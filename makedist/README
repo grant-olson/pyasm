@@ -1,0 +1,14 @@
+PyASM by Grant Olson <olsongt at verizon.net>
+=============================================
+
+PyASM is a dynamic x86 assembler for python.  By "dynamic", I mean that it can be used to generate inline assembly functions in python at runtime without requiring object file generation or linkage.
+
+New in version 0.2
+------------------
+
+ + Linux Support.  Will work in Linux environments as well as Windows.
+ + Simplified Interface.  You only need to use one function to generate code.
+ + Preliminary Documentation.
+
+
+
