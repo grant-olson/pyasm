@@ -175,6 +175,8 @@ class data:
 class procedure:
     def __init__(self,name):
         self.Name = name
+        self.Address = 0x0
+        
         self.Args = []
         self.ArgOffset = 4
         self.Locals = []
