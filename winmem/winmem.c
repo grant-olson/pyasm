@@ -14,8 +14,7 @@ winmem_LoadExecutableMemoryString(PyObject *self, PyObject *args)
 	int len,dest,ok;
 	const char *memString;
 
-	ok = PyArg_ParseTuple(args, "is", &dest, &memString);
-	len = strlen(memString);
+	ok = PyArg_ParseTuple(args, "is#", &dest, &memString,&len);
 
 	memcpy((void*)dest,memString,len);
 
@@ -41,6 +40,29 @@ static PyObject *
 winmem_GetCurrentExecutablePosition(PyObject *self, PyObject *args)
 {
 	return Py_BuildValue("i",(int)posExcMemory);
+}
+
+static PyObject *
+winmem_BindFunctionAddress(PyObject *self, PyObject *args)
+{
+	PyMethodDef *md;
+	PyObject *func;
+	int pointer;
+
+	if (!PyArg_ParseTuple(args, "i", &pointer))
+        return NULL;
+
+	
+
+	md = PyMem_New(PyMethodDef,1);
+	md->ml_doc = "foo";
+	md->ml_flags = METH_VARARGS;
+	md->ml_meth = (void*)pointer;
+	md->ml_name = "foo";
+
+	func = PyCFunction_New(md,NULL);
+
+	return Py_BuildValue("O",func);
 }
 
 PyMODINIT_FUNC
@@ -71,6 +93,9 @@ static PyMethodDef WinmemMethods[] = {
 
 	{"GetCurrentExecutablePosition",winmem_GetCurrentExecutablePosition, METH_VARARGS,
 	"Get the current memory location so we can determine patchins."},
+
+	{"BindFunctionAddress",winmem_BindFunctionAddress, METH_VARARGS,
+	"Binds a function address to a python PyCFUnction object so we can call it."},
 
 
     {NULL, NULL, 0, NULL}        /* Sentinel */
