@@ -18,6 +18,10 @@ class x86tokenizer_test(unittest.TestCase):
         re.compile(symbolRe)
         re.compile(instRegRe)
 
+    def test_tokenizeInstDef(self):
+        self.failUnlessRaises(tokenizeError,tokenizeInstDef,"MOV EAX,12")
+        self.failUnlessRaises(tokenizeError,tokenizeInstDef,"MOV EAX,foo")
+        
     def test_tokenizeInst(self):
         """
         Test various inputs to this function
@@ -44,6 +48,7 @@ class x86tokenizer_test(unittest.TestCase):
                            (NUMBER, '+12'), (RBRACKET, ']'), (COMMA, ','),
                            (NUMBER, '12')))
         self.assertEquals(tokenizeInst('RET'),((OPCODE, 'RET'),))
+        self.failUnlessRaises(tokenizeError, tokenizeInst,'MOV EAX,r/m8')
 
 if __name__ == '__main__':
     unittest.main()
