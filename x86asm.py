@@ -346,7 +346,7 @@ class assembler:
                 inst = findBestMatchTokens(i).GetInstance()
                 inst.LoadConcreteValues(i)
                 inst.Address = currentAddress
-                #currentAddress += inst.GetInstructionSize()
+                currentAddress += inst.GetInstructionSize()
                 newInsts.append(inst)
             else: # a label
                 i.Address = currentAddress

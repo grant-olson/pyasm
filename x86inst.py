@@ -437,7 +437,8 @@ class instructionInstance:
                         if registerVal < 0:
                             raise x86instError("Couldn't resolve register '%s'" % registerName)
                         else:
-                            ModRM.RegOp = registerVal
+                            tmpModRM.Mode = 3
+                            tmpModRM.RM = registerVal
                     elif firstTok[0] == LBRACKET:
                         while firstTok[0] != RBRACKET:
                             firstTok, restTok = restTok[0],restTok[1:]
@@ -451,7 +452,7 @@ class instructionInstance:
                     if registerVal < 0:
                         raise x86instError("Couldn't resolve register '%s'" % registerName)
                     else:
-                        ModRM.RegOp = registerVal
+                        tmpModRM.RegOp = registerVal
                 elif firstDef[1] in ('imm32','imm16','imm8'):
                     pass
                 else:
@@ -464,7 +465,8 @@ class instructionInstance:
                 break
             firstDef, restDef = restDef[0],restDef[1:]
             firstTok, restTok = restTok[0],restTok[1:]
-            
+        self.ModRM = tmpModRM
+        
     def OpText(self):
         size = 0
         retVal = ''
