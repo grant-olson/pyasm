@@ -210,13 +210,15 @@ class procedure:
     def LookupArg(self,name):
         for x in self.Args:
             if x[0] == name:
-                return ( (LBRACKET, '['), (REGISTER,'EBP'),(NUMBER, x[1]), (RBRACKET,']') )
+                return ( (LBRACKET, '['), (REGISTER,'EBP'),(NUMBER, str(x[1])),
+                         (RBRACKET,']') )
         return None
 
     def LookupLocal(self,name):
         for x in self.Locals:
             if x[0] == name:
-                return ( (LBRACKET, '['), (REGISTER,'EBP'),(NUMBER, -x[1]), (RBRACKET,']') )
+                return ( (LBRACKET, '['), (REGISTER,'EBP'),(NUMBER, str(-x[1])),
+                         (RBRACKET,']') )
         return None
        
     def LookupVar(self, name):
@@ -353,7 +355,8 @@ class assembler:
                 newInsts.append(i)
         for i in newInsts:
             if isinstance(i, instructionInstance):
-                print "%08X: %s " % (i.Address, i.Instruction.InstructionString)
+                #print "%08X: %s " % (i.Address, i.Instruction.InstructionString)
+                print i.OpText()
             else:
                 print "%08X: %s" % (i.Address, i.Name)
             

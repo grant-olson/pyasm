@@ -444,8 +444,11 @@ class instructionInstance:
                         if firstTok[0] in (NUMBER,SYMBOL):
                             tmpModRM.Mode = 0
                             tmpModRM.RM = 6
-                            self.Displacement = firstTok[1]
-                            # lookup symbol?
+                            if firstTok[0] == NUMBER:
+                                self.Displacement = eval(firstTok[1])
+                            else:
+                                #TODO: Lookup properly
+                                self.Displacement = 0x0
                             firstTok, restTok = restTok[0],restTok[1:]
                         elif firstTok[0] == REGISTER:
                             regTok = firstTok
@@ -456,7 +459,11 @@ class instructionInstance:
                                 tmpModRM.RM = ['EAX','ECX','EDX','EBX]',
                                                '[--][--]','EBP','ESI',
                                                'EDI'].index(regTok[1])
-                                self.Displacement = firstTok[1]
+                                if firstTok[0] == NUMBER:
+                                    self.Displacement = eval(firstTok[1])
+                                else:
+                                    #TODO: Lookup properly
+                                    self.Displacement = 0x0
                                 firstTok, restTok = restTok[0],restTok[1:]
                             else: # no displacement
                                 tmpModRM.Mode = 0
@@ -476,7 +483,7 @@ class instructionInstance:
                     else:
                         tmpModRM.RegOp = registerVal
                 elif firstDef[1] in ('imm32','imm16','imm8'):
-                    pass
+                    self.Immediate = eval(firstTok[1])
                 else:
                     #there will really be more cases here.
                     raise x86instError("Invalid Operand type '%s'" % firstDef[1])
