@@ -80,11 +80,30 @@ class LogRecordSocketReceiver(SocketServer.ThreadingTCPServer):
 
 import thread, Tkinter
 
+class textboxWithScrollbars(Tkinter.Frame):
+    def __init__(self,master):
+        Tkinter.Frame.__init__(self,master)
+        
+        self.textbox = Tkinter.Text(self,font='courier')
+        self.textbox.pack(side=Tkinter.LEFT)
+        self.insert = self.textbox.insert
+        
+        self.scrollbar = Tkinter.Scrollbar(self)
+        self.scrollbar.pack(side=Tkinter.RIGHT,fill=Tkinter.Y)
+        self.scrollbar.config(command=self.textbox.yview)
+        
+        
+        
 class pyasmDebuggerWindow:
     def __init__(self):
         self.root = Tkinter.Tk()
         self.l = Tkinter.Label(self.root,text="pyasm debugging console")
         self.l.pack()
+
+        self.buttons = Tkinter.Frame(self.root)
+        self.buttons.pack()
+        self.output = Tkinter.Frame(self.root)
+        self.output.pack()
         
         self.x86asmTextbox = self.loggerTextbox('pyasm.x86.asm')
         self.x86apiTextbox = self.loggerTextbox('pyasm.x86.api')
@@ -100,7 +119,7 @@ class pyasmDebuggerWindow:
         self.activeBox = textbox
         
     def loggerTextbox(self,loggername):
-        logTextbox = Tkinter.Text(self.root,font='courier')
+        logTextbox = textboxWithScrollbars(self.output)
         logTextbox.insert(Tkinter.INSERT, "%s CONSOLE\n" % loggername)
         logTextbox.insert(Tkinter.INSERT, "==============\n\n")
         logTextbox.pack_forget()
@@ -108,9 +127,9 @@ class pyasmDebuggerWindow:
         ts = TkTextLogStream(logTextbox)
         logging.getLogger(loggername).addHandler(logging.StreamHandler(ts))
 
-        button = Tkinter.Button(self.root,text=loggername,
+        button = Tkinter.Button(self.buttons,text=loggername,
                                 command=lambda:self.changePane(logTextbox))
-        button.pack()
+        button.pack(side=Tkinter.LEFT)
 
         return logTextbox
     
