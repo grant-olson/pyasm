@@ -13,8 +13,17 @@ class test_winmem(unittest.TestCase):
 
     def test_simple_function(self):
         a = assembler()
-        a.ADStr("hello_world", "Hello world!\0")
+        a.ADStr("hello_world", "Hello world!\n\0")
         a.AP("test_print", CDECL)
+        a.AddLocal("self")
+        a.AddLocal("args")
+        #a.AI("INT 3")
+        a.AI("PUSH hello_world")
+        a.AI("CALL PySys_WriteStdout")
+        a.AI("MOV EAX,%s" % id(None))
+        a.EP()
+
+        a.AP("test_print2", CDECL)
         a.AddLocal("self")
         a.AddLocal("args")
         #a.AI("INT 3")
@@ -27,6 +36,7 @@ class test_winmem(unittest.TestCase):
         mem.MakeMemory(globals())
 
         test_print("Foo")
+        test_print2('bar')
         
 if __name__ == "__main__":
     unittest.main()
