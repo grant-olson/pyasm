@@ -72,9 +72,15 @@ class OpcodeDict(dict):
             raise RuntimeError("Shouldn't get here")
         else:
             return lst[0]
-        
+
+class MnemonicDict(dict):
+    def __setitem__(self,key,val):
+        if self.has_key(key):
+            raise RuntimeError("Duplicate mnemonic def %s" % `key`)
+        dict.__setitem__(self,key,val)
 
 opcodeDict = OpcodeDict()
+mnemonicDict = MnemonicDict()
                 
 opcodeFlags = ['/0','/1','/2','/3','/4','/5','/6','/7',
                '/r',
@@ -227,7 +233,8 @@ class instruction:
         elif '+rd' in self.OpcodeFlags:
             self.loadRBWD('+rd','r32')
         else:
-            opcodeDict[self.Opcode] = self        
+            opcodeDict[self.Opcode] = self
+            mnemonicDict[self.InstructionDef] = self
 
     def loadRBWD(self,plus,reg):
         for i in range(8):
@@ -249,7 +256,7 @@ class instruction:
             if instDict['opcode']: lst.append((OPCODE,instDict['opcode']))
             if instDict['comma']: lst.append((COMMA,instDict['comma']))
             rest = instDict['rest']
-        self.InstructionDef = lst
+        self.InstructionDef = tuple(lst)
 
     def setOpcodeAndFlags(self):
         parts = self.OpcodeString.split()
@@ -592,9 +599,9 @@ i("F2 AF", "REPNE SCAS m16", "Find AX, starting at ES:[(E)DI].")
 i("F2 AF", "REPNE SCAS m32", "Find EAX, starting at ES:[(E)DI].")
 
 i("C3", "RET", "Near return to calling procedure")
-i("CB", "RET", "Far Return to calling procedure")
+#i("CB", "RET", "Far Return to calling procedure")
 i("C2 iw", "RET imm16", "Near return to calling procedure and pop imm16 bytes from stack")
-i("CA iw", "RET imm16", "Far Return to calling procedure and pop imm16 bytes from the stack")
+#i("CA iw", "RET imm32", "Far Return to calling procedure and pop imm16 bytes from the stack")
 
 i("2C ib", "SUB AL,imm8", "Subtract imm8 from AL.")
 i("2D iw", "SUB AX,imm16", "Subtract imm16 from AX.")
@@ -621,7 +628,7 @@ i("83 /6 ib", "XOR r/m16,imm8", "r/m16 XOR imm8 (sign-extended)")
 i("83 /6 iw", "XOR r/m32,imm8", "r/m32 XOR imm8 (sign-extended)")
 i("30 /r", "XOR r/m8,r8", "r/m8 XOR r8.")
 i("31 /r", "XOR r/m16,r16", "r/m16 XOR r16")
-i("31 /r", "XOR r/m16,r16", "r/m16 XOR r16")
+i("31 /r", "XOR r/m32,r32", "r/m32 XOR r32")
 i("32 /r", "XOR r8,r/m8", "r8 XOR r/m8")
 i("33 /r", "XOR r16,r/m16", "r16 XOR r/m16")
 i("33 /r", "XOR r32,r/m32", "r32 XOR r/m32")
