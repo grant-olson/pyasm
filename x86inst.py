@@ -489,6 +489,9 @@ class instructionInstance:
                 elif firstDef[0] != firstTok[0]:
                     raise x86instError("These should be equal '%s' '%s'" % \
                                        (firstDef, firstTok))
+            elif firstDef[0] == NUMBER:
+                if firstTok[0] != NUMBER or firstTok[1] != firstDef[1]:
+                    raise x86instError("INVALID NUMBER '%s'" % repr(firstTok))
             elif firstDef[0] == OPERAND:
                 if firstDef[1] in ('r/m32','r/m16','r/m8'):
                     #figure out r/m val
