@@ -149,6 +149,7 @@ readable.
 =========================   ====================  ========================================
 Text Directive              API Call              Brief Description
 =========================   ====================  ========================================
+**!CALL proc [arg arg]**    *n/a*                 Procedure call framework
 **!CHARS name value**       **.AStr(n,v)**        Create a character array (aka a string)
 **!COMMENT text**           *n/a*                 Comment line.
 **!CONST name value**       **.AC(n,v)**          Create a constant value.
@@ -159,6 +160,11 @@ Text Directive              API Call              Brief Description
 **!ENDPROC**                **.EP()**             End a procedure
 =========================   ====================  ========================================
 
+!CALL proc [arg arg arg]
+  A convienence function for procedure calling.  PUSHes arguments onto the
+  stack from right to left and calls the appropriate procedure.  Stack cleanup
+  (if any) is still the programmer's responsibility.
+  
 !CHARS name value
   Create a character array (aka a string)
 
