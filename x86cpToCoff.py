@@ -1,6 +1,6 @@
 from pyasm.coff import coffError, coffFile, coffSection, coffRelocationEntry, coffSymbolEntry
 from pyasm.coffConst import *
-import time
+import logging, time
 
 class CpToCoff:
     def __init__(self,cp):
@@ -87,24 +87,30 @@ class CpToCoff:
                        '&\x00\x00\x00\x00\x00\x00\x00O\xe0\xad\x98\x00\x00\x00\x00\x00\x00')
 
         self.addSymbol('.text\x00\x00\x00', SymbolValues.SYM_UNDEFINED, 2,
-                            SymbolTypes.NULL, SymbolClass.STATIC)
-        #Auxiliaries = "\x10\x00\x00\x00\x02\x00\x00\x00\x9d\xf0\xcd3\x00\x00\x01\x00\x00\x00"
-
+                            SymbolTypes.NULL, SymbolClass.STATIC,
+        "\x00" * 18)
+        #Stub for auxialary here.
 
         for sym in self.cp.CodeSymbols:
-            self.addSymbol(sym[0], SymbolValues.SYM_UNDEFINED, 2, 0x20,
+            self.addSymbol(sym[0], SymbolValues.SYM_ABSOLUTE, 2, 0x20,
                                 SymbolClass.EXTERNAL)
 
         for sym in self.cp.DataSymbols:
             self.addSymbol(sym[0], SymbolValues.SYM_UNDEFINED, 3, 0x20,
-                                SymbolClass.EXTERNAL) 
+                                SymbolClass.EXTERNAL)
+
+        #resolve external label references here
+        for patchin in self.cp.CodePatchins:
+            try:
+                self.coff.Symbols.GetLocation(patchin[0])
+            except coffError:
+                # no symble entry, add ref
+                self.addSymbol(patchin[0], SymbolValues.SYM_UNDEFINED, 0, 0x20,
+                               SymbolClass.EXTERNAL)
 
         self.addSymbol('.data\x00\x00\x00', SymbolValues.SYM_UNDEFINED, 3,
                             SymbolTypes.NULL, SymbolClass.STATIC,
                        '\x0e\x00\x00\x00\x00\x00\x00\x00\xfe,\xa6\xfb\x00\x00\x02\x00\x00\x00')
-
-        self.addSymbol('??_C@_0O@FEEI@Hello?5World?$CB?6?$AA@\x00', SymbolValues.SYM_UNDEFINED, 3,
-                            SymbolTypes.NULL, SymbolClass.EXTERNAL)
 
         self.addSymbol('.debug$F', SymbolValues.SYM_UNDEFINED, 4, SymbolTypes.NULL,
                             SymbolClass.STATIC,
