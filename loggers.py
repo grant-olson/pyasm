@@ -1,4 +1,4 @@
-import logging
+import logging, logging.handlers
 
 #so root logger doesn't log children's info messages
 rootLogger = logging.getLogger('')
@@ -8,9 +8,10 @@ rootLogger.addHandler(rootHandler)
 
 #quick debug messages
 debugLogger = logging.getLogger("pyasm.debug")
-debugHandler = StreamHandler()
+debugHandler = logging.StreamHandler()
 debugHandler.setLevel(logging.DEBUG)
 
+#various loggers
 x86sourceLogger = logging.getLogger("pyasm.x86.source")
 x86asmLogger = logging.getLogger("pyasm.x86.asm")
 x86apiLogger = logging.getLogger("pyasm.x86.api")
@@ -28,3 +29,8 @@ console.setFormatter(formatter)
 x86apiLogger.addHandler(console)
 x86sourceLogger.addHandler(console)
 x86asmLogger.addHandler(console)
+
+socketHandler = logging.handlers.SocketHandler('localhost',
+                    logging.handlers.DEFAULT_TCP_LOGGING_PORT)
+
+x86asmLogger.addHandler(socketHandler)
