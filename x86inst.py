@@ -427,17 +427,15 @@ class instructionInstance:
                 size += 1
             disp = self.ModRM.GetDisplacementSize()
             if disp == 1:
-                retVal += "%02X " % self.Displacement
+                retVal += longToBytesRepr(self.Displacement,1)
                 size += 1
             elif disp == 4:
-                #TODO: FIX
                 retVal += longToBytesRepr(self.Displacement,4)
                 size += 4
         if self.Instruction.HasDisplacement:
             retVal += longToBytesRepr(self.Displacement,self.Instruction.DisplacementSize)
             size += self.Instruction.DisplacementSize
         if self.Instruction.HasImmediate:
-            #TODO: FIX
             retVal += longToBytesRepr(self.Immediate,self.Instruction.ImmediateSize)
             size += self.Instruction.ImmediateSize
             
