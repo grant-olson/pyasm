@@ -304,9 +304,9 @@ class procedure:
 #
 # assembler directive re's
 #
-stringRe = re.compile(symbolRe + "\s*((?P<q>'|\")(?P<s>.*)(?P=q))?$",re.DOTALL)
-procRe = re.compile(symbolRe +"\s*(?P<TYPE>STDCALL|CDECL|PYTHON)?$")
-varRe = re.compile(symbolRe + "\s*(?P<NUM>" + Number[1:] + "?$")
+stringRe = re.compile("\s*" + symbolRe + "\s*((?P<q>'|\")(?P<s>.*)(?P=q))?$",re.DOTALL)
+procRe = re.compile("\s*" + symbolRe +"\s*(?P<TYPE>STDCALL|CDECL|PYTHON)?$")
+varRe = re.compile("\s*" + symbolRe + "\s*(?P<NUM>" + Number[1:] + "?$")
 
 class assembler:
     def __init__(self):
@@ -536,6 +536,14 @@ class assembler:
             raise x86asmError("Never ended procedure '%s'" % self.CurrentProcedure.Name)
         return self.pass1()
 
+def codePackageFromFile(fil,constCallback=None):
+    a = assembler()
+    if constCallback:
+        constCallback(a)
+    for line in fil.readlines():
+        a(line.decode("string_escape"))
+    return a.Compile()
+        
 if __name__ == '__main__':
     a = assembler()
     a.AP("foo")
