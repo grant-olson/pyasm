@@ -8,7 +8,7 @@ Test various variables, parameters and constants in procedures
 from pyasm.x86asm import assembler, CDECL
 from pyasm.x86cpToCoff import CpToCoff
 import unittest
-import os, logging
+import os,logging,sys
 
 linkCmd = "cd output && link /DEBUG /OPT:REF /OPT:ICF %s"
 
@@ -53,10 +53,13 @@ class test_variables(unittest.TestCase):
         coff.WriteToFile(f)
         f.close()
 
-        self.assertEquals(os.system(linkCmd % "testParams.obj"), 0)
-        self.assertEquals(os.popen("cd output && testParams.exe").read(),
-                          "3h + 12h + 12h = 27h\n")
-
+        if sys.platform == 'win32':
+            self.assertEquals(os.system(linkCmd % "testParams.obj"), 0)
+            self.assertEquals(os.popen("cd output && testParams.exe").read(),
+                              "3h + 12h + 12h = 27h\n")
+        else:
+            print "Skipping linker test, coff files are only valid on win32 platforms"
+            
     def test_locals(self):
         """
         Make sure params get refrennced correctly
@@ -93,9 +96,12 @@ class test_variables(unittest.TestCase):
         coff.WriteToFile(f)
         f.close()
 
-        self.assertEquals(os.system(linkCmd % "testLocals.obj"), 0)
-        self.assertEquals(os.popen("cd output && testlocals.exe").read(),
-                          "3h + 12h + 12h = 27h\n")
+        if sys.platform == 'win32':
+            self.assertEquals(os.system(linkCmd % "testLocals.obj"), 0)
+            self.assertEquals(os.popen("cd output && testlocals.exe").read(),
+                              "3h + 12h + 12h = 27h\n")
+        else:
+            print "Skipping linker test, coff files are only valid on win32 platforms"
 
         
 if __name__ == '__main__':

@@ -107,9 +107,12 @@ class test_object_creation(unittest.TestCase):
         coff.WriteToFile(f)
         f.close()
 
-        self.assertEquals(os.system(linkCmd % "testProc.obj"), 0)
-        self.assertEquals(os.popen("cd output && testProc.exe").read(), "Hello, World\n")
-
+        if sys.platform == 'win32':
+            self.assertEquals(os.system(linkCmd % "testProc.obj"), 0)
+            self.assertEquals(os.popen("cd output && testProc.exe").read(), "Hello, World\n")
+        else:
+            print "Skipping linker test, coff files are only valid on win32 platforms"
+            
     def test_goodbye_world(self):
         """
         Make sure we see the second param instead of defaulting to the first
