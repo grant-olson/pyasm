@@ -8,7 +8,7 @@ Test various variables, parameters and constants in procedures
 from pyasm.x86asm import assembler, CDECL
 from pyasm.x86cpToCoff import CpToCoff
 import unittest
-import os,logging,sys
+import os,sys
 
 """
 Hopefully this will fix itself when I get all the proper coff entries in place

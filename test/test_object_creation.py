@@ -37,7 +37,7 @@ _main:
 from pyasm.x86asm import assembler
 from pyasm.x86cpToCoff import CpToCoff
 import unittest
-import os,logging,sys
+import os,sys
 
 linkCmd = "cd output && link /DEBUG /OPT:REF /OPT:ICF %s"
 
