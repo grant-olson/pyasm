@@ -32,7 +32,7 @@ import re
 class tokenizeError(Exception):pass
 
 #token IDs
-REGISTER,OPCODE,COMMA,OPERAND,LBRACKET,RBRACKET,NUMBER,SYMBOL = range(1,9)
+REGISTER,OPCODE,COMMA,OPERAND,LBRACKET,RBRACKET,NUMBER,SYMBOL,STRING = range(1,10)
 
 tokLookup = {'REGISTER':REGISTER,
              'OPCODE':OPCODE,
@@ -83,7 +83,7 @@ whitespaceRe = '[\s\+]'
 opcodeRe = re.compile('^[A-Z]+$')
 
 #instructionRe specific stuff
-
+stringRe = "((?P<q>'|\")(?P<STRING>.*)(?P=q))"
 lbracketRe = '(?P<LBRACKET>\[)'
 rbracketRe = '(?P<RBRACKET>\])'
 numberRe = '(?P<NUMBER>[\+\-]?(0x[0-9A-Fa-f]+|[0-9]+))'
@@ -93,9 +93,9 @@ symbolRe = '(?P<SYMBOL>[A-Za-z_@]+)'
 instructionDefRe = re.compile("(?:%s*(?:%s|%s|%s|%s|%s|%s|%s)(?P<rest>.*))" % \
                            (whitespaceRe,defRegRe,operandRe,symbolRe,commaRe,numberRe,lbracketRe,rbracketRe))
 
-instructionRe = re.compile("(?:%s*(?:%s|%s|%s|%s|%s|%s)(?P<rest>.*))" % \
+instructionRe = re.compile("(?:%s*(?:%s|%s|%s|%s|%s|%s|%s)(?P<rest>.*))" % \
                            (whitespaceRe,lbracketRe,rbracketRe,instRegRe,
-                            commaRe,numberRe,symbolRe))
+                            commaRe,numberRe,symbolRe,stringRe))
 
 def tokenizeString(s,reToProcess):
     lst = []
@@ -133,6 +133,7 @@ def tokenizeString(s,reToProcess):
         elif instDict['LBRACKET']: lst.append((LBRACKET,instDict['LBRACKET']))
         elif instDict['RBRACKET']: lst.append((RBRACKET,instDict['RBRACKET']))
         elif instDict['NUMBER']: lst.append((NUMBER,instDict['NUMBER']))
+        elif instDict['STRING']: lst.append((STRING,instDict['STRING']))
         else:
             raise tokenizeError("Tokenization failed on string %s, match %s" \
                                   % (s,rest))
@@ -177,7 +178,7 @@ def tokenizeInst(s):
         index += 1
         
     while index < length:
-        if toks[index][0] in (REGISTER,NUMBER,SYMBOL):
+        if toks[index][0] in (REGISTER,NUMBER,SYMBOL,STRING):
             index += 1
         elif toks[index][0] == LBRACKET:
             index += 1
@@ -197,7 +198,7 @@ def tokenizeInst(s):
                 index += 1
         else:
             raise tokenizeError("Invalid Instruction: '%s' " \
-                                "Expected a REGISTER,LBRACKET,NUMBER,or SYMBOL" % s)
+                                "Expected a REGISTER,LBRACKET,NUMBER,SYMBOL, or STRING" % s)
 
         if index < length:
             if toks[index][0] != COMMA:

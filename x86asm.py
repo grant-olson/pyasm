@@ -13,8 +13,8 @@ I need to get the instruction tokenizer working for this to take off.
 """
 from x86tokenizer import (tokenizeInst,
                           REGISTER,OPCODE,COMMA,OPERAND,
-                          LBRACKET,RBRACKET,NUMBER,SYMBOL,
-                          symbolRe)
+                          LBRACKET,RBRACKET,NUMBER,SYMBOL,STRING,
+                          symbolRe,stringRe)
 
 from x86inst import mnemonicDict, rb, rw, rd, instructionInstance
 
@@ -311,10 +311,10 @@ class procedure:
 #
 # assembler directive re's
 #
-stringRe = re.compile("\s*" + symbolRe + "\s*((?P<q>'|\")(?P<s>.*)(?P=q))?$",re.DOTALL)
+strRe = re.compile("\s*" + symbolRe + "\s*" + stringRe + "?$",re.DOTALL)
 procRe = re.compile("\s*" + symbolRe +"\s*(?P<TYPE>STDCALL|CDECL|PYTHON)?$")
 varRe = re.compile("\s*" + symbolRe + "\s*(?P<NUM>" + Number[1:] + "?$")
-callRe = re.compile("\s*" + symbolRe + "\s*(?P<REST>.*)")
+callRe = re.compile("\s*(%s|%s)\s*(?P<REST>.*)" % (symbolRe, stringRe))
 
 class assembler:
     def __init__(self):
@@ -325,6 +325,7 @@ class assembler:
         self.CurrentProcedure = None
         self.StartAddress = 0x0
         self.DataStartAddress = 0x0
+        self.inlineStringNo = 1000
 
     def registerLabel(self,lbl):
         if self.Labels.has_key(lbl.Name):
@@ -340,7 +341,14 @@ class assembler:
         instToksMinusLocals = ()
 
         for tok in instToks:
-            if tok[0] != SYMBOL: # do nothing
+            if tok[0] == STRING:
+                # Create an inlined string
+                inlineName = "inline_pyasm_string%i" % self.inlineStringNo
+                escapedString = tok[1].decode("string_escape")
+                self.ADStr(inlineName,escapedString)
+                instToksMinusLocals += ((SYMBOL,inlineName),)
+                self.inlineStringNo += 1                
+            elif tok[0] != SYMBOL: # do nothing
                 instToksMinusLocals += ( tok,)
             elif self.Constants.has_key(tok[1]): #replace constant
                 instToksMinusLocals += (self.Constants[tok[1]],)
@@ -478,7 +486,15 @@ class assembler:
 
         while rest:
             matches = callRe.match(rest).groupdict()
-            first,rest = matches['SYMBOL'],matches['REST']
+            if not matches:
+                raise x86asmError("Couldn't parse assembler directive %s" % repr(params))
+            rest = matches['REST']
+            if matches['SYMBOL']:
+                first = matches['SYMBOL']
+            elif matches['STRING']:
+                first = matches['q'] + matches['STRING'] + matches['q']
+            else:
+                raise x86asmError("Couldn't parse assembler directive %s" % repr(params))
             params.append(first)
 
         params.reverse() # push from right to left
@@ -487,14 +503,14 @@ class assembler:
         self.AI("CALL %s" % proc)
     
     def CHARS(self,params):
-        matches = stringRe.match(params)
+        matches = strRe.match(params)
         if not matches:
             raise x86asmError("Couldn't parse assembler directive %s" % repr(params))
         matches = matches.groupdict()
-        name,s = matches['SYMBOL'], matches['s']
+        name,s = matches['SYMBOL'], matches['STRING']
         if not (name and s):
             raise x86asmError("Couldn't parse assembler directive %s" % repr(params))
-        self.ADStr(name,s)
+        self.ADStr(name,s.decode("string_escape"))
 
     def COMMENT(self,params):
         pass
@@ -567,7 +583,7 @@ def codePackageFromFile(fil,constCallback=None):
     if constCallback:
         constCallback(a)
     for line in fil.readlines():
-        a(line.decode("string_escape"))
+        a(line)
     return a.Compile()
         
 if __name__ == '__main__':

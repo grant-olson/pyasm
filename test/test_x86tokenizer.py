@@ -77,6 +77,11 @@ class x86tokenizer_test(unittest.TestCase):
                                                              (1, 'EAX'),
                                                  (8, 'foo'), (6, ']'), (3, ','),
                                                  (7, '0x3')))
+
+    def test_string(self):
+        self.assertEquals(tokenizeInst("PUSH 'hello world\\n\\0'"),((2, 'PUSH'),
+                                                                    (9, 'hello world\\n\\0')))
+
 if __name__ == '__main__':
     unittest.main()
 
