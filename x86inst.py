@@ -540,14 +540,21 @@ class instructionInstance:
             elif typ == OPERAND:
                 #TODO: Cleanup here, remove strings in if statements
                 if val in immediate:
-                    operandStr += "%X" % self.Immediate
+                    operandStr += "0x%X" % self.Immediate
                 elif val in displacement:
-                    operandStr += "%X" % (self.Displacement +
+                    operandStr += "0x%X" % (self.Displacement +
                                           self.NextInstructionLoc())
                 elif val in ('r8','r16','r32','mm','xmm','/digit','REG'):
                     operandStr += self.ModRM.RegOpString(val)
                 elif val in ('r/m8','r/m16','r/m32'):
-                    operandStr += self.ModRM.RMString(val)
+                    rmString = self.ModRM.RMString(val)
+                    if rmString.find('disp8') >= 0:
+                        rmString = rmString.replace('disp8',"0x%X" % \
+                                                    self.Displacement)
+                    if rmString.find('disp32') >= 0:
+                        rmString = rmString.replace('disp32', "0x%X" % \
+                                                    self.Displacement)
+                    operandStr += rmString
                 elif val in ('m','m8','m16','m32'):
                     tmpVal = self.ModRM.RMString(val)
                     tmpVal = tmpVal.replace("+disp8", "%+X" % self.Displacement)
