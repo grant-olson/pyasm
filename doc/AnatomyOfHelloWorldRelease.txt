@@ -26,7 +26,7 @@ This attempts to describe the meaning of all of the various sections here for my
 Section 1
 =========
 
-The directive section.  This apparently contains flags for use by the linker
+The directive section.  This apparently contains flags for use by the linker.  It is just one parameter noramlly seperated by spaces.
 
 ::
 
@@ -104,6 +104,9 @@ Data Section
 ------------
 
 The data section contains initialized data, i.e. the Hello World string in this case.
+
+"Hello World" is in a read only section in debug mode, but r/w here
+
 What does COMDAT mean? How is that generated?
 
 ::
@@ -132,6 +135,8 @@ Section 4
 
 Debug$F
 -------
+
+Debug Frame?
 
 Comdat again? I guess this contains the information for FPO relocation
 So that de don't lose the callstack when debugging.
@@ -173,8 +178,6 @@ FPO Data
 
 Relocation Table
 ----------------
-
-
 
 ::
 
