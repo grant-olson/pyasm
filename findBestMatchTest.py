@@ -102,8 +102,15 @@ def findBestMatch(s):
         raise RuntimeError("Unable to find match for '%s'" % s)
 
 def testBestMatch(s):
-    print "Best match for '%s' => '%s'" % (s,findBestMatch(s))
+    print "Best match for '%s' => '%s'" % (s,findBestMatch(s).InstructionString)
 
-findBestMatch("MOV EAX, 12")
-findBestMatch("MOV EAX,EBX")
-findBestMatch("MOV [EAX],12")
+import unittest
+
+class test_lookups(unittest.TestCase):
+    def test_simple_matches(self):
+        testBestMatch("MOV EAX, 12")
+        testBestMatch("MOV EAX,EBX")
+        testBestMatch("MOV [EAX],12")
+
+if __name__ == '__main__':
+    unittest.main()
