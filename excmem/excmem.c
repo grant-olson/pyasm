@@ -26,6 +26,9 @@ permissions at the same time.
 
 #include <dlfcn.h>
 #include <sys/mman.h>
+#include <errno.h>
+#include <string.h>
+#include <stdio.h>
 
 #endif
 
@@ -40,10 +43,11 @@ void *posExcMemory;
 static PyObject *
 excmem_LoadExecutableMemoryString(PyObject *self, PyObject *args)
 {
-	int len,dest,ok;
+	int len,dest;
 	const char *memString;
 
-	ok = PyArg_ParseTuple(args, "is#", &dest, &memString,&len);
+	if (!PyArg_ParseTuple(args, "is#", &dest, &memString,&len))
+		return NULL;
 
 	memcpy((void*)dest,memString,len);
 
@@ -97,26 +101,39 @@ excmem_BindFunctionAddress(PyObject *self, PyObject *args)
 PyMODINIT_FUNC
 initexcmem(void)
 {
+	
 	PyObject *m;
+	int ret;
+	char *errbuf[NL_TEXTMAX + 256];
+
+    m = Py_InitModule("excmem", ExcmemMethods);
+
+    ExcmemError = PyErr_NewException("excmem.ExcmemError", NULL, NULL);
+    Py_INCREF(ExcmemError);
+	PyModule_AddObject(m, "ExcmemError", ExcmemError);
 
 	/* Allocate executable memory */
 #ifdef MS_WINDOWS
 	startExcMemory = VirtualAlloc(NULL,4096,MEM_COMMIT,PAGE_EXECUTE_READWRITE);
 #else
 	startExcMemory = malloc(4096);
-	mprotect(startExcMemory,4096,PROT_READ|PROT_WRITE|PROT_EXEC);
+	if (!startExcMemory) {
+		PyErr_SetString(PyExc_MemoryError,"Couldn't allocate memory!");
+		return;
+	}
+
+	ret = mprotect(startExcMemory,4096,PROT_READ|PROT_WRITE|PROT_EXEC);
+
+	if (ret) {
+		PyErr_SetString(PyExc_MemoryError,"Error protecting memory");
+		return;
+	}
 #endif
 
 
 	posExcMemory = startExcMemory;
 
 	/* End allocation of executable memory */
-
-    m = Py_InitModule("excmem", ExcmemMethods);
-
-    ExcmemError = PyErr_NewException("excmem.ExcmemError", NULL, NULL);
-    Py_INCREF(ExcmemError);
-    PyModule_AddObject(m, "ExcmemError", ExcmemError);
 }
 
 #ifndef MS_WINDOWS
@@ -133,7 +150,16 @@ excmem_GetSymbolAddress(PyObject *self, PyObject *args)
 		return NULL;
 
 	lib_addr = dlopen(libname,RTLD_LAZY);
+	if(!lib_addr) {
+		PyErr_SetString(ExcmemError,"Couln't resolve library");
+		return NULL;
+	}
+
 	sym_addr = dlsym(lib_addr,symname);
+	if(!sym_addr) {
+		PyErr_SetString(ExcmemError,"Couldn't resolve symbol");
+		return NULL;
+	}
 
 	return Py_BuildValue("i",(int)sym_addr);
 }
