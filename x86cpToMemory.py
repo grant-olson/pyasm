@@ -27,8 +27,6 @@ class CpToMemory:
         codeAddr = self.memAccess.AllocateExecutableMemory(len(self.cp.Code))
         dataAddr = self.memAccess.AllocateExecutableMemory(len(self.cp.Data))
 
-        logging.error("Code address: %08x" % codeAddr)
-        logging.error("Data Address: %08x" % dataAddr)
         self.symbols = {}        
         for sym in self.cp.CodeSymbols:
             self.symbols[sym[0]] = sym[1] + codeAddr
@@ -38,14 +36,12 @@ class CpToMemory:
         self.resolvedCode = self.cp.Code # nondestructive on cp
 
         for patch in self.cp.CodePatchins:
-            logging.error(patch)
             if patch[2] == DIRECT:
                 resolvedAddr = self.LookupAddress(patch[0])
             elif patch[2] == RELATIVE:
                 resolvedAddr = self.LookupAddress(patch[0]) - (codeAddr + patch[1] + 4)
             else:
                 raise RuntimeError("Invalid patchin information")
-            logging.error("Resolved address %08x" % resolvedAddr)
             self.resolvedCode = self.resolvedCode[:patch[1]] + ulongToString(resolvedAddr) \
                            + self.resolvedCode[patch[1]+4:]
             
