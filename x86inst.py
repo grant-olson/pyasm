@@ -93,7 +93,7 @@ rd = ['EAX','ECX','EDX','EBX','ESP','EBP','ESI','EDI']
 regOpcode = {
     'r8':['AL','CL','DL','BL','AH','CH','DH','BH'],
     'r16':['AX','CX','DX','BX','SP','BP','SI','DI'],
-    'r32':['EAX','ECX','EDX','EBX','ESP','EBP','ESI','ESI','EDI'],
+    'r32':['EAX','ECX','EDX','EBX','ESP','EBP','ESI','EDI'],
     'mm':['MM0','MM1','MM2','MM3','MM4','MM5','MM6','MM7'],
     'xmm':['XMM0','XMM1','XMM2','XMM3','XMM4','XMM5','XMM6','XMM7'],
     '/digit':[0,1,2,3,4,5,6,7],
@@ -101,10 +101,10 @@ regOpcode = {
     }
 
 mode1 = ['[EAX]','[ECX]','[EDX]','[EBX]','[--][--]','disp32','[ESI]','[EDI]']
-mode2 = ['[EAX]+disp8','[ECX]+disp8','[EDX]+disp8','[EBX]+disp8',
-         '[--][--]+disp8','[EBP]+disp8','[ESI]+disp8','[EDI]+disp8']
-mode3 = ['[EAX]+disp8','[ECX]+disp8','[EDX]+disp8','[EBX]+disp8',
-         '[--][--]+disp8','[EBP]+disp8','[ESI]+disp8','[EDI]+disp8']
+mode2 = ['[EAX+disp8]','[ECX+disp8]','[EDX+disp8]','[EBX+disp8]',
+         '[--][--]+disp8','[EBP+disp8]','[ESI+disp8]','[EDI+disp8]']
+mode3 = ['[EAX+disp32]','[ECX+disp32]','[EDX+disp32]','[EBX+disp32]',
+         '[--][--]+disp32','[EBP+disp8]','[ESI+disp8]','[EDI+disp8]']
 
 class ModRM:
     def __init__(self,byte=None):
@@ -442,17 +442,17 @@ class instructionInstance:
                 operandStr += val
             elif typ == OPERAND:
                 if val in immediate:
-                    operandStr += "%08X" % self.Immediate
+                    operandStr += "%X" % self.Immediate
                 elif val in displacement:
-                    operandStr += "%08X" % self.Displacement
+                    operandStr += "%X" % self.Displacement
                 elif val in ('r8','r16','r32','mm','xmm','/digit','REG'):
                     operandStr += self.ModRM.RegOpString(val)
                 elif val in ('r/m8','r/m16','r/m32'):
                     operandStr += self.ModRM.RMString(val)
                 elif val in ('m','m8','m16','m32'):
                     tmpVal = self.ModRM.RMString(val)
-                    tmpVal = tmpVal.replace("disp8", "%X" % self.Displacement)
-                    tmpVal = tmpVal.replace("disp32", "%X" % self.Displacement)
+                    tmpVal = tmpVal.replace("+disp8", "%+X" % self.Displacement)
+                    tmpVal = tmpVal.replace("+disp32", "%+X" % self.Displacement)
                     operandStr += tmpVal
                 else:
                     # should check for other types
