@@ -352,9 +352,8 @@ class assembler:
                 i.Address = currentAddress
                 newInsts.append(i)
         for i in newInsts:
-            print type(i)
             if isinstance(i, instructionInstance):
-                print "%08X: %s " % (i.Address, i.Instruction.InstructionString) ,
+                print "%08X: %s " % (i.Address, i.Instruction.InstructionString)
             else:
                 print "%08X: %s" % (i.Address, i.Name)
             

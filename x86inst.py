@@ -440,8 +440,30 @@ class instructionInstance:
                             tmpModRM.Mode = 3
                             tmpModRM.RM = registerVal
                     elif firstTok[0] == LBRACKET:
-                        while firstTok[0] != RBRACKET:
+                        firstTok, restTok = restTok[0],restTok[1:]
+                        if firstTok[0] in (NUMBER,SYMBOL):
+                            tmpModRM.Mode = 0
+                            tmpModRM.RM = 6
+                            self.Displacement = firstTok[1]
+                            # lookup symbol?
                             firstTok, restTok = restTok[0],restTok[1:]
+                        elif firstTok[0] == REGISTER:
+                            regTok = firstTok
+                            firstTok, restTok = restTok[0],restTok[1:]
+                            if firstTok[0] in (NUMBER,SYMBOL): #displacement
+                                #assume mode 0x2 for now
+                                tmpModRM.Mode = 2
+                                tmpModRM.RM = ['EAX','ECX','EDX','EBX]',
+                                               '[--][--]','EBP','ESI',
+                                               'EDI'].index(regTok[1])
+                                self.Displacement = firstTok[1]
+                                firstTok, restTok = restTok[0],restTok[1:]
+                            else: # no displacement
+                                tmpModRM.Mode = 0
+                                tmpModRM.RM = ['EAX','ECX','EDX','EB]',
+                                                '[--][--]','disp32','ESI',
+                                               'EDI'].index(regTok[1])
+                            
                     else:
                         raise x86instError("Invalid r/m token '%s'" % firstTok[0])
                             
