@@ -3,7 +3,7 @@
 
 from pyasm.coff import coffFile, coffSection, coffRelocationEntry, coffSymbolEntry
 from pyasm.coffConst import *
-import time,os
+import time,os,sys
 
 """Creates a simple .objfile that should be good enough to
 link as a hello world program"""
@@ -114,7 +114,9 @@ f = file("output/rawHelloWorld.obj","wb")
 c.WriteToFile(f)
 f.close()
 
-os.system("cd output && link rawHelloWorld.obj")
-
-os.system("cd output && rawHelloWorld.exe")
-
+if sys.platform == 'win32':
+    os.system("cd output && link rawHelloWorld.obj")
+    os.system("cd output && rawHelloWorld.exe")
+else:
+    print "Skipping linker test, coff files are only valid on win32 platforms"
+    

@@ -8,7 +8,7 @@ Test various variables, parameters and constants in procedures
 from pyasm.x86asm import assembler, CDECL
 from pyasm.x86cpToCoff import CpToCoff
 import unittest
-import os, logging
+import os,logging,sys
 
 """
 Hopefully this will fix itself when I get all the proper coff entries in place
@@ -57,9 +57,12 @@ class test_linker(unittest.TestCase):
         coff.WriteToFile(f)
         f.close()
 
-        self.assertEquals(os.system(linkCmd % "testLinker.obj"), 0)
-        self.assertEquals(os.popen("cd output && testLinker.exe").read(),
-                          "3h + 12h + 12h = 27h\n")
+        if sys.platform == "win32":
+            self.assertEquals(os.system(linkCmd % "testLinker.obj"), 0)
+            self.assertEquals(os.popen("cd output && testLinker.exe").read(),
+                              "3h + 12h + 12h = 27h\n")
+        else:
+            print "Skipping linker test, coff files are only valid on win32 platforms"
 
         
 if __name__ == '__main__':

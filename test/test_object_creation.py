@@ -37,7 +37,7 @@ _main:
 from pyasm.x86asm import assembler
 from pyasm.x86cpToCoff import CpToCoff
 import unittest
-import os, logging
+import os,logging,sys
 
 linkCmd = "cd output && link /DEBUG /OPT:REF /OPT:ICF %s"
 
@@ -131,9 +131,12 @@ class test_object_creation(unittest.TestCase):
         coff.WriteToFile(f)
         f.close()
 
-        self.assertEquals(os.system(linkCmd % "testGoodbyeWorld.obj"), 0) 
-        self.assertEquals(os.popen("cd output &&testGoodbyeWorld.exe").read(), "Goodbye, World\n")
-
+        if sys.platform == 'win32':
+            self.assertEquals(os.system(linkCmd % "testGoodbyeWorld.obj"), 0) 
+            self.assertEquals(os.popen("cd output &&testGoodbyeWorld.exe").read(), "Goodbye, World\n")
+        else:
+            print "Skipping linker test, coff files are only valid on win32 platforms"
+            
     def test_two_procs(self):
         """
         Make sure second proc gets called correctly
@@ -163,9 +166,12 @@ class test_object_creation(unittest.TestCase):
         coff.WriteToFile(f)
         f.close()
 
-        self.assertEquals(os.system(linkCmd % "testTwoProcs.obj"), 0)
-        self.assertEquals(os.popen("cd output && testTwoProcs.exe").read(),
-                          "Hello, all 18 planets!\n")
+        if sys.platform == 'win32':
+            self.assertEquals(os.system(linkCmd % "testTwoProcs.obj"), 0)
+            self.assertEquals(os.popen("cd output && testTwoProcs.exe").read(),
+                              "Hello, all 18 planets!\n")
+        else:
+            print "Skipping linker test, coff files are only valid on win32 platforms"
                 
 if __name__ == '__main__':
     unittest.main()
