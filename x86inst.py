@@ -1,11 +1,11 @@
-#
 # TODO: how do we handle dup opcodes for 16 and 32 bit?
-# TODO: How do we handle dup opcodes for / notation?
-# TODO: Multiple opcode flags
+
 
 import re
 
 class OpcodeTooShort(Exception):pass
+class OpcodeNeedsModRM(Exception):pass # for /d info
+class OpcodeNeedsPreferredSize(Exception):pass # for 16/32 byte dupes
 
 class OpcodeDict(dict):
     """
@@ -21,12 +21,37 @@ class OpcodeDict(dict):
 
     def __setitem__(self,key,value):
         if self.has_key(key):
-            raise RuntimeError("Duplicate key [0x%X]" % key)
-        dict.__setitem__(self,key,value)
+            dict.__getitem__(self,key).append(value)
+        else:
+            dict.__setitem__(self,key,[value])
+        # Sentinel for multi-byte opcodes
         if len(key) > 1:
             for i in range(len(key)-1):
                 tmpKey = key[:i]
-                dict.__setitem__(self,tmpKey,value)
+                dict.__setitem__(self,tmpKey,None)
+                
+    def GetOp(self,opcode,modRM=None,preferredSize=None):
+        lst = self.__getitem__(opcode)
+        
+        if modRM is not None:
+            digit = modRM & 0x38
+            digit = digit >> 3
+            digit = "/%s" % digit
+            lst = [item for item in lst if digit in item.OpcodeFlags]
+        if preferredSize is not None:
+            pass
+        if len(lst) < 0:
+            raise RuntimeError("Can't find opcode")
+        elif len(lst) > 1:
+            # try to figure out what we need
+            op = lst[0]
+            for flag in op.OpcodeFlags:
+                if flag in ('/0','/1','/2','/3','/4','/5','/6','/7'):
+                    raise OpcodeNeedsModRM("Opcode %s" % op.Opcode)
+            raise OpcodeNeedsPreferredSize()
+        else:
+            return lst[0]
+        
 
 opcodeDict = OpcodeDict()
                 
@@ -139,9 +164,9 @@ i = instruction
 i("04 ib", "ADD AL,imm8", "Add imm8 to AL")
 #i("05 iw", "ADD AX,imm16", "Add imm16 to AX")
 i("05 id", "ADD EAX,imm32", "Add imm32 to EAX")
-#i("80 /0 ib", "ADD r/m8,imm8", "Add imm6 to r/m8")
-#i("81 /0 iw", "ADD r/m16,imm16", "Add imm16 to r/m16")
-#i("81 /0 id", "ADD r/m32,imm32", "Add imm32 to r/m32")
+i("80 /0 ib", "ADD r/m8,imm8", "Add imm6 to r/m8")
+i("81 /0 iw", "ADD r/m16,imm16", "Add imm16 to r/m16")
+i("81 /0 id", "ADD r/m32,imm32", "Add imm32 to r/m32")
 #i("83 /0 ib", "ADD r/m16, imm8", "Add sign extended imm8 to r/m16")
 i("83 /0 iw", "Add r/m32,imm8", "Add sign extended imm8 to r/m32")
 i("00 /r", "Add r/m8,r8", "Add r8 to r/m8")
@@ -153,12 +178,12 @@ i("03 /r", "Add r32,r/m32", "Add r/m32 to r32")
 
 #i("E8 cw", "CALL rel16", "Call near, relative, displacement relative to next instruction")
 i("E8 cd", "CALL rel32", "Call near, relative, displacement relative to next instruction")
-#i("FF /2", "CALL r/m16", "Call near, absolute indirect, address given in r/m16")
-#i("FF /2", "CALL r/m32", "Call near, absolute indirect, address given in r/m32")
+i("FF /2", "CALL r/m16", "Call near, absolute indirect, address given in r/m16")
+i("FF /2", "CALL r/m32", "Call near, absolute indirect, address given in r/m32")
 #i("9A cd", "CALL ptr16:16", "Call far, absolute, address given in operand")
 i("9A cp", "CALL ptr32:32", "Call far, absolute, address given in operand")
-#i("FF /3", "CALL m16:16", "Call far, absolute indirect, address given in m16:16")
-#i("FF /3", "CALL m32:32", "Call far, absolute indirect, address given in m32:32")
+i("FF /3", "CALL m16:16", "Call far, absolute indirect, address given in m16:16")
+i("FF /3", "CALL m32:32", "Call far, absolute indirect, address given in m32:32")
 
 
 i("88 /r","MOV r/m8,r8","Move r8 to r/m8.")
@@ -207,7 +232,7 @@ i("80 /6 ib", "XOR r/m8,imm8", "r/m8 XOR imm8.")
 #i("81 /6 iw", "XOR r/m16,imm16", "r/m16 xor imm16")
 i("81 /6 iw", "XOR r/m32,imm32", "r/m32 xor imm32")
 #i("83 /6 ib", "XOR r/m16,imm8", "r/m16 XOR imm8 (sign-extended)")
-#i("83 /6 iw", "XOR r/m32,imm8", "r/m32 XOR imm8 (sign-extended)")
+i("83 /6 iw", "XOR r/m32,imm8", "r/m32 XOR imm8 (sign-extended)")
 i("30 /r", "XOR r/m8,r8", "r/m8 XOR r8.")
 #i("31 /r", "XOR r/m16,r16", "r/m16 XOR r16")
 i("31 /r", "XOR r/m16,r16", "r/m16 XOR r16")
