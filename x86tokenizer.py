@@ -120,9 +120,66 @@ def tokenizeString(s,reToProcess):
     return tuple(lst)
 
 def tokenizeInstDef(s):
-    return tokenizeString(s, instructionDefRe)
+    toks = tokenizeString(s, instructionDefRe)
+    index,length = 0,len(toks)
+    if length == 0:
+        raise tokenizeError("Invalid Instruction.  Cannot be blank")
+    if toks[index][0] != OPCODE:
+        raise tokenizeError("Invalid Instruction: '%s' " \
+                            "Must start with an OPCODE" % s)
+    
+    while index < length and toks[index][0] == OPCODE:
+        index += 1
+        
+    while index < length:
+        if toks[index][0] not in (REGISTER,OPERAND):
+            raise tokenizeError("Invalid Instruction Definition: '%s' " \
+                                "Expected a REGISTER OR OPERAND ENTRY" % s)
+        index += 1
+        if index < length:
+            if toks[index][0] != COMMA:
+                raise tokenizeError("Invalid Instruction Def: '%s' Expected " \
+                                    "a COMMA" % s)
+            index += 1
+    return toks
+    
 
 def tokenizeInst(s):
-    return tokenizeString(s, instructionRe)
+    toks = tokenizeString(s, instructionRe)
+    index,length = 0,len(toks)
+    if length == 0:
+        raise tokenizeError("Invalid Instruction.  Cannot be blank")
+    if toks[index][0] != OPCODE:
+        raise tokenizeError("Invalid Instruction: '%s' " \
+                            "Must start with an OPCODE" % s)
+    
+    while index < length and toks[index][0] == OPCODE:
+        index += 1
+        
+    while index < length:
+        if toks[index][0] in (REGISTER,NUMBER,SYMBOL):
+            index += 1
+        elif toks[index][0] == LBRACKET:
+            index += 1
+            if toks[index][0] != REGISTER:
+                raise tokenizeError("Invalid Instruction: '%s'  Expected a " \
+                                    "REGISTER inside the [brackets]" %s)
+            else:
+                index += 1
+                if toks[index][0] == NUMBER:
+                    index += 1
+                if toks[index][0] != RBRACKET:
+                    raise tokenizeError("Invalid Instruction: '%s' Expected an " \
+                                        "ending BRACKET here." % s)
+                else:
+                    index += 1
+        else:
+            raise tokenizeError("Invalid Instruction: '%s' " \
+                                "Expected a REGISTER,LBRACKET,NUMBER,or SYMBOL" % s)
 
-  
+        if index < length:
+            if toks[index][0] != COMMA:
+                raise tokenizeError("Invalid Instruction: '%s' Expected " \
+                                    "a COMMA" % s)
+            index += 1
+    return toks

@@ -21,6 +21,12 @@ class x86tokenizer_test(unittest.TestCase):
     def test_tokenizeInstDef(self):
         self.failUnlessRaises(tokenizeError,tokenizeInstDef,"MOV EAX,12")
         self.failUnlessRaises(tokenizeError,tokenizeInstDef,"MOV EAX,foo")
+
+    def test_InstDefVerification(self):
+        self.failUnlessRaises(tokenizeError,tokenizeInstDef,"MOV EAX,,,r/m8")
+        self.failUnlessRaises(tokenizeError,tokenizeInstDef,"m8 MOV EAX")
+        self.failUnlessRaises(tokenizeError,tokenizeInstDef,"MOV EAX EAX EAX")
+        self.failUnlessRaises(tokenizeError,tokenizeInstDef,"MOV ,EAX,r/m8")
         
     def test_tokenizeInst(self):
         """
@@ -50,6 +56,12 @@ class x86tokenizer_test(unittest.TestCase):
         self.assertEquals(tokenizeInst('RET'),((OPCODE, 'RET'),))
         self.failUnlessRaises(tokenizeError, tokenizeInst,'MOV EAX,r/m8')
 
+    def test_InstVerification(self):
+        self.failUnlessRaises(tokenizeError,tokenizeInst,"MOV [EAX,12],12")
+        self.failUnlessRaises(tokenizeError,tokenizeInst,"MOV ,EAX,12")
+        self.failUnlessRaises(tokenizeError,tokenizeInst,"MOV [EAX+12+13],12")
+        self.failUnlessRaises(tokenizeError,tokenizeInst,"MOV [[EAX,12],12")
+        self.failUnlessRaises(tokenizeError,tokenizeInst,"MOV [EAX,12,12")
 if __name__ == '__main__':
     unittest.main()
 
