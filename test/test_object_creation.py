@@ -32,32 +32,47 @@ _main:
 """
 
 from pyasm.x86asm import assembler
+import unittest
 
-a = assembler()
+class test_object_creation(unittest.TestCase):
+    def test_object_creation(self):
+        a = assembler()
 
-a.AIL("_main")
-a.AI("PUSH        EBP")
-a.AI("MOV         EBP,ESP")
-a.AI("SUB         ESP,0x40")
-a.AI("PUSH        EBX")
-a.AI("PUSH        ESI")
-a.AI("PUSH        EDI")
-a.AI("LEA         EDI,[EBP-0x40]")
-a.AI("MOV         ECX,0x10")
-a.AI("MOV         EAX,0x0CCCCCCCC")
-a.AI("REP STOS   [EDI]")
-a.AI("PUSH        hello_world")
-a.AI("CALL        _printf")
-a.AI("ADD         ESP,4")
-a.AI("XOR         EAX,EAX")
-a.AI("POP         EDI")
-a.AI("POP         ESI")
-a.AI("POP         EBX")
-a.AI("ADD         ESP,0x40")
-a.AI("CMP         EBP,ESP")
-a.AI("CALL        __chkesp")
-a.AI("MOV         ESP,EBP")
-a.AI("POP         EBP")
-a.AI("RET")
+        a.ADStr('hello_world','Hello, World\n\0')
+        a.AIL("_main")
+        a.AI("PUSH        EBP")
+        a.AI("MOV         EBP,ESP")
+        a.AI("SUB         ESP,0x40")
+        a.AI("PUSH        EBX")
+        a.AI("PUSH        ESI")
+        a.AI("PUSH        EDI")
+        a.AI("LEA         EDI,[EBP-0x40]")
+        a.AI("MOV         ECX,0x10")
+        a.AI("MOV         EAX,0x0CCCCCCCC")
+        a.AI("REP STOS   [EDI]")
+        a.AI("PUSH        hello_world")
+        a.AI("CALL        _printf")
+        a.AI("ADD         ESP,4")
+        a.AI("XOR         EAX,EAX")
+        a.AI("POP         EDI")
+        a.AI("POP         ESI")
+        a.AI("POP         EBX")
+        a.AI("ADD         ESP,0x40")
+        a.AI("CMP         EBP,ESP")
+        a.AI("CALL        __chkesp")
+        a.AI("MOV         ESP,EBP")
+        a.AI("POP         EBP")
+        a.AI("RET")
+        a.ADStr("goodbye_world", "GOODBYE WORLD!\n\0")
 
-a.Compile()
+        cp = a.Compile()
+        
+        self.assertEquals(cp.Code,'U\x8b\xec\x81\xc4@\x00\x00\x00SVW\x8d\xbd\xc0\xb9\x10\x00\x00\x00\xb8\xcc\xcc\xcc\xcc\xf3\xabh\x00\x00\x00\x00\xe8\x00\x00\x00\x00\x81\xc4\x04\x00\x00\x003\xc0_^[\x81\xc4@\x00\x00\x00;\xec\xe8\x00\x00\x00\x00\x8b\xe5]\xc3')
+        self.assertEquals(cp.CodePatchins,[('hello_world', 28), ('_printf', 33), ('__chkesp', 57)])
+        self.assertEquals(cp.CodeSymbols,[('_main', 0)])
+        self.assertEquals(cp.Data,'Hello, World\n\x00GOODBYE WORLD!\n\x00')
+        self.assertEquals(cp.DataSymbols,[('hello_world', 0), ('goodbye_world', 14)])
+
+if __name__ == '__main__':
+    unittest.main()
+    

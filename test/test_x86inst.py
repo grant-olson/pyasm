@@ -32,7 +32,7 @@ class test_text_generation(unittest.TestCase):
         i.LoadConcreteValues("MOV EAX,0xCCCCCCCC")
         print i.OpText()
         self.assertEqual(i.OpText(),
-                         '  00000000: E8 00 00 00 00          CALL      0x5       ')
+                         '  00000000: B8 CC CC CC CC          MOV       EAX,0xCCCCCCCC')
     
 if __name__ == "__main__":
     unittest.main()

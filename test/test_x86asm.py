@@ -4,22 +4,22 @@ from pyasm.x86asm import *
 class test_instruction_lookups(unittest.TestCase):
     
     def test_simple_matches(self):
-        printBestMatch("MOV EAX, 12")
-        printBestMatch("MOV EAX,EBX")
-        printBestMatch("MOV [EAX],12")
-        printBestMatch("MOV [EAX-4],12")
+        self.assertEquals(findBestMatch("MOV EAX, 12").InstructionString,'MOV EAX,imm32')
+        self.assertEquals(findBestMatch("MOV EAX,EBX").InstructionString,'MOV r32,r/m32')
+        self.assertEquals(findBestMatch("MOV [EAX],12").InstructionString,'MOV r/m32,imm32')
+        self.assertEquals(findBestMatch("MOV [EAX-4],12").InstructionString,'MOV r/m32,imm32')
 
     def test_byte_word_matches(self):
-        printBestMatch("MOV AL,3")
-        printBestMatch("MOV AX,BX")
+        self.assertEquals(findBestMatch("MOV AL,3").InstructionString,'MOV AL,imm8')
+        self.assertEquals(findBestMatch("MOV AX,BX").InstructionString,'MOV r16,r/m16')
 
     def test_register_memory(self):
-        printBestMatch("MOV [EAX],EBX")
-        printBestMatch("MOV EAX,[EBX]")
-        printBestMatch("MOV EAX, EBX")
+        self.assertEquals(findBestMatch("MOV [EAX],EBX").InstructionString,'MOV r/m32,r32')
+        self.assertEquals(findBestMatch("MOV EAX,[EBX]").InstructionString,'MOV r32,r/m32')
+        self.assertEquals(findBestMatch("MOV EAX, EBX").InstructionString,'MOV r32,r/m32')
         self.failUnlessRaises(x86asmError,printBestMatch,"MOV [EAX],[EBX]")
-        printBestMatch("MOV [0x1234],EAX")
-        printBestMatch("MOV [foo],EAX")
+        self.assertEquals(findBestMatch("MOV [0x1234],EAX").InstructionString,'MOV r/m32,r32')
+        self.assertEquals(findBestMatch("MOV [foo],EAX").InstructionString,'MOV r/m32,r32')
         
         
     def test_invalid_combos(self):
@@ -30,13 +30,13 @@ class test_instruction_lookups(unittest.TestCase):
         self.failUnlessRaises(x86asmError,printBestMatch,"MOV EAX,[AX]")
 
     def test_symbol_resolution(self):
-        printBestMatch('PUSH hw_string')
-        printBestMatch('CALL _printf')
+        self.assertEquals(findBestMatch('PUSH hw_string').InstructionString,'PUSH imm32')
+        self.assertEquals(findBestMatch('CALL _printf').InstructionString,'CALL rel32')
 
 class assemblerTests(unittest.TestCase):
     def test_basic_assembler(self):
         a = assembler()
-        a.AD('hw_string','Hello, World!\n\0')
+        a.ADStr('hw_string','Hello, World!\n\0')
         a.AIL('_main')
         a.AI('PUSH hw_string')
         a.AI('CALL _printf')
