@@ -199,7 +199,10 @@ class ModRM:
         elif self.Mode == 1:
             return 1
         elif self.Mode == 2:
-            return 4
+            if self.RM <= 4:
+                return 4
+            else:
+                return 1
         else:
             return 0
         
