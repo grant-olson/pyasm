@@ -10,6 +10,7 @@ At some point we'll need to deal with forward references and symbols, but
 not today.
 """
 
+import logging
 import struct
 from pickle import decode_long, encode_long
 from x86tokenizer import (tokenizeInstDef,tokenizeInst,
@@ -119,7 +120,7 @@ class OpcodeDict(dict):
                 if flag in ('/0','/1','/2','/3','/4','/5','/6','/7'):
                     raise OpcodeNeedsModRM("Opcode %s" % op.Opcode)
             for x in lst:
-                print x.Description
+                logging.error(x.Description)
             raise RuntimeError("Shouldn't get here")
         else:
             return lst[0]
@@ -452,12 +453,12 @@ class instructionInstance:
     def LoadConcreteValues(self, toks):
         if type(toks) == type(""):
             toks = tokenizeInst(toks)
-        print "%s => %s" % (self.Instruction.InstructionString, toks)
+        logging.info("%s => %s" % (self.Instruction.InstructionString, toks))
         tmpModRM = ModRM()
         firstDef, restDef = (self.Instruction.InstructionDef[0],self.Instruction.InstructionDef[1:])
         firstTok, restTok = toks[0],toks[1:]
         while 1:
-            print "TOK COMPARES: %s => %s" % (firstDef, firstTok)
+            logging.info("TOK COMPARES: %s => %s" % (firstDef, firstTok))
             if firstDef[0] in (OPCODE, COMMA, REGISTER):
                 if firstDef[0] != firstTok[0]:
                     raise x86instError("These should be equal '%s' '%s'" % \

@@ -65,7 +65,6 @@ class x86Disassembler:
             except KeyError,x:
                 raise RuntimeError("Unsupported Opcode '%s'" % op)
             instInst = inst.GetInstance()
-            #print instInst.Instruction.InstructionString
             try:
                 suffixSize = instInst.GetSuffixSize()
             except OpcodeNeedsModRM,x:

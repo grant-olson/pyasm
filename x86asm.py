@@ -14,6 +14,7 @@ from x86tokenizer import (tokenizeInst,
 
 from x86inst import mnemonicDict, rb, rw, rd, instructionInstance
 
+import logging
 import types
 
 class x86asmError(Exception): pass
@@ -358,7 +359,6 @@ class assembler:
                 newInsts.append(i)
         for i in newInsts:
             if isinstance(i, instructionInstance):
-                #print "%08X: %s " % (i.Address, i.Instruction.InstructionString)
                 print i.OpText()
             else:
                 print "%08X: %s" % (i.Address, i.Name)
