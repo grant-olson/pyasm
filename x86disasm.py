@@ -1,6 +1,6 @@
 from x86tokens import *
 from x86inst import *
-import struct
+from x86PackUnpack import *
 
 class x86Block:
     """
