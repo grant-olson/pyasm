@@ -33,4 +33,7 @@ x86asmLogger.addHandler(console)
 socketHandler = logging.handlers.SocketHandler('localhost',
                     logging.handlers.DEFAULT_TCP_LOGGING_PORT)
 
+x86sourceLogger.addHandler(socketHandler)
 x86asmLogger.addHandler(socketHandler)
+x86apiLogger.addHandler(socketHandler)
+debugLogger.addHandler(socketHandler)

@@ -530,6 +530,7 @@ class assembler:
         self.AddInstruction(s)
 
     def DispatchString(self,s):
+        x86sourceLogger.info(s.rstrip()) #don't want extra newline
         s = s.strip()
         if not s:
             pass #blank line
@@ -583,12 +584,30 @@ class assembler:
             raise x86asmError("Never ended procedure '%s'" % self.CurrentProcedure.Name)
         return self.pass1()
 
+def _log_header(text):
+    line = "=" * len(text)
+    x86sourceLogger.info(line)
+    x86sourceLogger.info(text)
+    x86sourceLogger.info(line)
+    x86sourceLogger.info('')
+        
+
 def codePackageFromFile(fil,constCallback=None):
+    try:
+        filename = fil.name
+    except: #stringIO objects don't have a name property
+        filename = repr(fil)
+        
+    _log_header("COMPILING FILE %s" % filename)
     a = assembler()
+    
     if constCallback:
         constCallback(a)
+        
     for line in fil.readlines():
         a(line)
+        
+    _log_header("END COMPILE OF %s" % filename)
     return a.Compile()
         
 if __name__ == '__main__':
