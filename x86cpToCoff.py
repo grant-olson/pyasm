@@ -67,9 +67,7 @@ class CpToCoff:
 ##        c.Sections.append(s4)
 
     def addSymbol(self,name,val,sec,typ,cls,aux=''):
-        s = coffSymbolEntry(name,val,sec,typ,cls)
-        ssAuxiliaries = aux
-        self.coff.Symbols.append(s)
+        self.coff.AddSymbol(name,val,sec,typ,cls,aux)
         
     def addSymbols(self):
         self.addSymbol('.file\x00\x00\x00',SymbolValues.SYM_UNDEFINED,-2,
@@ -88,15 +86,18 @@ class CpToCoff:
 
 
         for sym in self.cp.CodeSymbols:
-            self.addSymbol('_main\x00\x00\x00', SymbolValues.SYM_UNDEFINED, 2, 0x20,
+            self.addSymbol(sym[0], SymbolValues.SYM_UNDEFINED, 2, 0x20,
                                 SymbolClass.EXTERNAL)
- 
+
+        for sym in self.cp.DataSymbols:
+            self.addSymbol(sym[0], SymbolValues.SYM_UNDEFINED, 3, 0x20,
+                                SymbolClass.EXTERNAL) 
 
         self.addSymbol('.data\x00\x00\x00', SymbolValues.SYM_UNDEFINED, 3,
                             SymbolTypes.NULL, SymbolClass.STATIC,
                        '\x0e\x00\x00\x00\x00\x00\x00\x00\xfe,\xa6\xfb\x00\x00\x02\x00\x00\x00')
 
-        self.addSymbol('\x00\x00\x00\x00\x04\x00\x00\x00', SymbolValues.SYM_UNDEFINED, 3,
+        self.addSymbol('??_C@_0O@FEEI@Hello?5World?$CB?6?$AA@\x00', SymbolValues.SYM_UNDEFINED, 3,
                             SymbolTypes.NULL, SymbolClass.EXTERNAL)
 
         self.addSymbol('.debug$F', SymbolValues.SYM_UNDEFINED, 4, SymbolTypes.NULL,
@@ -117,9 +118,6 @@ class CpToCoff:
         self.coff.Sections.append(self.dataSection())
         #Do Debug$F after we figure out how it works
         #c.Sections.append(self.DebugF_Section())
-
-
-        self.coff.StringTable = '??_C@_0O@FEEI@Hello?5World?$CB?6?$AA@\x00'
 
         self.coff.SetSizes()
         self.coff.SetOffsets()

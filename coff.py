@@ -36,14 +36,14 @@ def charsAsBinDump(chars, address = 0):
         head,tail = tail[:16], tail[16:]
 
 class coffSymbolEntry:
-    def __init__(self,name="",value=0x0,sec=0x0,typ=0x0,cls=0x0):
+    def __init__(self,name="",value=0x0,sec=0x0,typ=0x0,cls=0x0,aux=''):
         self.Name = name
         self.Value = value
         self.SectionNumber = sec
         self.Type = typ
         self.StorageClass = cls
         self.NumberAuxiliary = 0x0
-        self.Auxiliaries = ''
+        self.Auxiliaries = aux
 
     def InitFromFile(self,f):
         self.Name = stringFromFile(8,f)
@@ -388,7 +388,15 @@ class coffFile:
             i += 1
         self.SymbolTableLoc = offset
         
-
+    def AddSymbol(self,name="",value=0x0,sec=0x0,typ=0x0,cls=0x0,aux=''):
+        if len(name) > 8: #add name to symbol table and reference
+            if name[-1] != '\x00':
+                name += '\x00'
+            pos = len(self.StringTable) + 4
+            self.StringTable += name
+            name = '\x00\x00\x00\x00' + ulongToString(pos)        
+        self.Symbols.append(coffSymbolEntry(name,value,sec,typ,cls,aux))    
+    
     def DumpInfo(self):
         print "Machine Type: %s" % self.MachineType
         print "Number of sections: %s" % self.NumberOfSections

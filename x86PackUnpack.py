@@ -33,6 +33,8 @@ def shortToFile(f, u): f.write(struct.pack("<h", u))
 def ulongToFile(f, u): f.write(struct.pack("<L", u))
 def stringToFile(f, n, u): f.write(struct.pack("<%ds" % n, u))
 
+def ulongToString(u): return struct.pack("<L", u)
+
 # These are a bit wierd because of python's use of longs with
 # bitwise operations
 def longFromFile(f): return struct.unpack("<L", f.read(4))[0]
