@@ -10,7 +10,6 @@ Create a disassembly dump of x86 code.
 TODO: Extract x86Block as the assembler probably needs the same stuff.
 """
 
-from x86tokens import *
 from x86inst import *
 from x86PackUnpack import *
 
