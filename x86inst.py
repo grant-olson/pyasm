@@ -1,4 +1,5 @@
 import re, struct
+from pickle import decode_long, encode_long
 
 class OpcodeTooShort(Exception):pass
 class OpcodeNeedsModRM(Exception):pass # for /d info and SIB calculation
@@ -84,10 +85,7 @@ opcodeFlags = ['/0','/1','/2','/3','/4','/5','/6','/7',
                ]
 
 instModRM = ['r/m8','r/m16','r/m32','r8','r16','r32']
-#mo is my name, intel just calls it m
 immediate = ['imm8','imm16','imm32']
-
-
 displacement = ['rel8','rel16','rel32']
 
 rb =['AL','CL','DL','BL','AH','CH','DH','BH']
@@ -110,6 +108,19 @@ mode2 = ['[EAX+disp8]','[ECX+disp8]','[EDX+disp8]','[EBX+disp8]',
 mode3 = ['[EAX+disp32]','[ECX+disp32]','[EDX+disp32]','[EBX+disp32]',
          '[--][--]+disp32','[EBP+disp8]','[ESI+disp8]','[EDI+disp8]']
 
+
+def longToBytes(long, bytes=4):
+    retVal = [ord(x) for x in encode_long(long)]
+    while len(retVal) < bytes:
+        retVal.append(0)
+    return tuple(retVal)
+
+def longToBytesRepr(long,bytes=4):
+    retVal = ""
+    for x in longToBytes(long,bytes):
+        retVal += "%02X " % x
+    return retVal
+        
 class ModRM:
     def __init__(self,byte=None):
         self.Mode = 0x0
@@ -420,22 +431,15 @@ class instructionInstance:
                 size += 1
             elif disp == 4:
                 #TODO: FIX
-                retVal += "%02X %02X %02X %02X " % (
-                    self.Displacement, self.Displacement,
-                    self.Displacement, self.Displacement,)
+                retVal += longToBytesRepr(self.Displacement,4)
                 size += 4
         if self.Instruction.HasDisplacement:
-            #TODO: FIX
-            retVal += "%02X %02X %02X %02X " % (
-                    self.Displacement, self.Displacement,
-                    self.Displacement, self.Displacement,)
-            size += 4
+            retVal += longToBytesRepr(self.Displacement,self.Instruction.DisplacementSize)
+            size += self.Instruction.DisplacementSize
         if self.Instruction.HasImmediate:
             #TODO: FIX
-            retVal += "%02X %02X %02X %02X " % (
-                    self.Immediate, self.Immediate,
-                    self.Immediate, self.Immediate,)
-            size += 4
+            retVal += longToBytesRepr(self.Immediate,self.Instruction.ImmediateSize)
+            size += self.Instruction.ImmediateSize
             
         retVal += "   " * (8-size)
 
