@@ -4,9 +4,15 @@ Coff symbol entries.
 There are a bunch of subclasses of coff symbol entries that MS uses.  Here is an
 attempt to create they as actual subclasses so that we're not doing any 'magic'
 with the Auxialary strings.
+
+Refer to "Microsoft Portable Executable and Common Object File Format
+Specification" revision 6.0 for additional details.
 """
 from coffConst import *
 from x86PackUnpack import *
+
+
+class coffSymbolError(Exception): pass
 
 def attemptNameLookup(const,id):
     """ Doesn't necessarily belong here but this avoids circular imports"""
@@ -71,4 +77,14 @@ class coffSymbolEntry:
             head,tail = tail[:70],tail[70:]
 
 
-            
+class coffSymbolFile(coffSymbolEntry):
+    """
+    See section 5.5.4 of Microsoft COFF Spec
+    """
+    def __init__(self,filename):
+        #pad filename with nulls
+        filename = filename + "\x00" * (18 - len(filename) % 18)
+        coffSymbolEntry.__init__(self,'.file\x00\x00\x00',SymbolValues.SYM_UNDEFINED,-2,
+                            SymbolTypes.NULL, SymbolClass.CLASS_FILE, filename)
+
+        

@@ -359,7 +359,10 @@ class coffFile:
             pos = len(self.StringTable) + 4
             self.StringTable += name
             name = '\x00\x00\x00\x00' + ulongToString(pos)        
-        self.Symbols.append(coffSymbolEntry(name,value,sec,typ,cls,aux,fullname))    
+        self.Symbols.append(coffSymbolEntry(name,value,sec,typ,cls,aux,fullname))
+        
+    def AddExistingSymbol(self, sym):
+        self.Symbols.append(sym)
     
     def DumpInfo(self):
         print "Machine Type: %s" % self.MachineType

@@ -1,5 +1,6 @@
 from pyasm.coff import coffError, coffFile, coffSection, coffRelocationEntry, coffSymbolEntry
 from pyasm.coffConst import *
+from pyasm.coffSymbolEntries import coffSymbolFile
 import logging, time
 
 class CpToCoff:
@@ -76,9 +77,7 @@ class CpToCoff:
         self.coff.AddSymbol(name,val,sec,typ,cls,aux)
         
     def addSymbols(self):
-        self.addSymbol('.file\x00\x00\x00',SymbolValues.SYM_UNDEFINED,-2,
-                            SymbolTypes.NULL, SymbolClass.CLASS_FILE,
-                       'C:\\objtest\\objtest\\objtest.cpp\x00\x00\x00\x00\x00\x00')
+        self.coff.AddExistingSymbol(coffSymbolFile('C:\\objtest\\objtest\\objtest.cpp'))
         
         self.addSymbol('@comp.id',0xB2306, -1, SymbolTypes.NULL, SymbolClass.STATIC)
 
