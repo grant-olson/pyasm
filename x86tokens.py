@@ -10,7 +10,7 @@ class token:
 
 rm8 = token()
 rm16 = token()
-rm32 = token
+rm32 = token()
 
 r8 = token()
 r16 = token()
@@ -20,6 +20,19 @@ imm8 = token()
 imm16 = token()
 imm32 = token()
 
+mm = token()
+xmm = token()
 
+dx = token()
+d0 = token()
+d1 = token()
+d2 = token()
+d3 = token()
+d4 = token()
+d5 = token()
+d6 = token()
+d7 = token()
 
-        
+rb = token()
+rw = token()
+rd = token()

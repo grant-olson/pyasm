@@ -1,5 +1,5 @@
-from coff import coffFile, coffSection, coffRelocationEntry, coffSymbolEntry
-from coffConst import *
+from pyasm.coff import coffFile, coffSection, coffRelocationEntry, coffSymbolEntry
+from pyasm.coffConst import *
 import time
 
 c = coffFile()
@@ -104,7 +104,7 @@ c.SetOffsets()
 
 c.DumpInfo()
 
-f = file("C:/objtest/objtest/Release/objtest.obj3","wb")
+f = file("rawHelloWorld.obj","wb")
 c.WriteToFile(f)
 f.close()
 
