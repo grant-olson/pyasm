@@ -1,6 +1,6 @@
 import unittest
 import pyasm.winmem
-from pyasm.x86asm import assembler
+from pyasm.x86asm import assembler, CDECL
 from pyasm.x86cpToMemory import CpToMemory
 
 class test_winmem(unittest.TestCase):
@@ -13,17 +13,19 @@ class test_winmem(unittest.TestCase):
 
     def test_simple_function(self):
         a = assembler()
-        a.ADStr("hello_world", "Hello world!")
-        a.AP("test_print")
+        a.ADStr("hello_world", "Hello world!\0")
+        a.AP("test_print", CDECL)
         a.AddLocal("self")
         a.AddLocal("args")
+        #a.AI("INT 3")
         a.AI("PUSH hello_world")
         a.AI("CALL PySys_WriteStdout")
-
+        a.AI("MOV EAX,%s" % id(None))
+        a.EP()
+        
         mem = CpToMemory(a.Compile(),pyasm.winmem)
         mem.MakeMemory(globals())
 
-        print globals()
         test_print("Foo")
         
 if __name__ == "__main__":
