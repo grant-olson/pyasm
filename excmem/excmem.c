@@ -183,9 +183,7 @@ initexcmem(void)
 		return;
 	}
 
-	ret = mprotect(startExcMemory,4096,PROT_READ|PROT_WRITE|PROT_EXEC);
-
-	if (ret) {
+	if (mprotect(startExcMemory,4096,PROT_READ|PROT_WRITE|PROT_EXEC);) {
 		PyErr_SetString(PyExc_MemoryError,"Error protecting memory");
 		return;
 	}
