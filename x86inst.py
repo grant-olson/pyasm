@@ -49,8 +49,8 @@ class OpcodeDict(dict):
             else:
                 raise RuntimeError("Invalid Preferred size")
                 
-        if len(lst) < 0:
-            raise RuntimeError("Can't find opcode")
+        if len(lst) == 0:
+            raise RuntimeError("Invalid/Unimplemented Opcode [%s]" % opcode)
         elif len(lst) > 1:
             # try to figure out what we need
             op = lst[0]
@@ -74,6 +74,10 @@ opcodeFlags = ['/0','/1','/2','/3','/4','/5','/6','/7',
 instModRM = ['r/m8','r/m16','r/m32','r8','r16','r32']
 immediate = ['imm8','imm16','imm32']
 displacement = ['rel8','rel16','rel32']
+
+rb =['AL','CL','DL','BL','AH','CH','DH','BH']
+rw = ['AX','CX','DX','BX','SP','BP','SI','DI']
+rd = ['EAX','ECX','EDX','EBX','ESP','EBP','ESI','EDI']
 
 class instruction:
     def __init__(self,opstr,inststr,desc):
@@ -105,7 +109,23 @@ class instruction:
         self.setOpcodeAndFlags()
         self.setHasFlags()
 
-        opcodeDict[self.Opcode] = self        
+        if '+rb' in self.OpcodeFlags:
+            for i in range(8):
+                oplist = list(self.Opcode)
+                oplist[0] += i
+                opcodeDict[tuple(oplist)] = self
+        elif '+rw' in self.OpcodeFlags:
+            for i in range(8):
+                oplist = list(self.Opcode)
+                oplist[0] += i
+                opcodeDict[tuple(oplist)] = self
+        elif '+rd' in self.OpcodeFlags:
+            for i in range(8):
+                oplist = list(self.Opcode)
+                oplist[0] += i
+                opcodeDict[tuple(oplist)] = self
+        else:
+            opcodeDict[self.Opcode] = self        
 
     def setOpcodeAndFlags(self):
         parts = self.OpcodeString.split()
@@ -153,6 +173,8 @@ class instruction:
         
     def GetSuffixSize(self):
         "Size for everything after Opcode"
+        if '+rb' in self.OpcodeFlags or '+rw' in self.OpcodeFlags or '+rd' in self.OpcodeFlags:
+            return 0
         size = 0
         if self.HasModRM: size += 1
         if self.HasSIB: size += 1
@@ -194,6 +216,8 @@ i("9A cp", "CALL ptr32:32", "Call far, absolute, address given in operand")
 i("FF /3", "CALL m16:16", "Call far, absolute indirect, address given in m16:16")
 i("FF /3", "CALL m32:32", "Call far, absolute indirect, address given in m32:32")
 
+i("8D /r", "LEA r16,m", "Store effective address for m in register r16.")
+i("8D /r", "LEA r32,m", "Store effective address for m in register r32")
 
 i("88 /r","MOV r/m8,r8","Move r8 to r/m8.")
 i("89 /r","MOV r/m16,r16","Move r16 to r/m16.")
@@ -233,6 +257,21 @@ i("C3", "RET", "Near return to calling procedure")
 i("CB", "RET", "Far Return to calling procedure")
 i("C2 iw", "RET imm16", "Near return to calling procedure and pop imm16 bytes from stack")
 i("CA iw", "RET imm16", "Far Return to calling procedure and pop imm16 bytes from the stack")
+
+i("2C ib", "SUB AL,imm8", "Subtract imm8 from AL.")
+i("2D iw", "SUB AX,imm16", "Subtract imm16 from AX.")
+i("2D id", "SUB EAX,imm32", "Subtract imm32 from EAX.")
+i("80 /5 ib", "SUB r/m8,imm8", "Subtract imm8 from r/m8")
+i("81 /5 iw", "SUB r/m16,imm16", "Subrtact imm16 from r/m16")
+i("81 /5 id", "SUB r/m32,imm32", "Subrtract imm32 from r/m32")
+i("83 /5 ib", "SUB r/m16,imm8", "Subtract imm8 from r/m16")
+i("83 /5 id", "SUB r/m32,imm8", "Subtract imm8 from r/m32")
+i("28 /r", "SUB r/m8,r8", "Subtract r8 from r/m8")
+i("29 /r", "SUB r/m16,r16", "Subtract r16 from r/m16")
+i("29 /r", "SUB r/m32,r32", "Subtract r32 from r/m32")
+i("2A /r", "SUB r8,r/m8", "Subtract r/m8 from r8")
+i("2B /r", "SUB r16,r/m16","Subtract r/m16 from r16")
+i("2B /r", "SUB r32,r/m32", "Subtract r/m32 from r32")
 
 i("34 ib", "XOR AL, imm8", "AL XOR imm8.")
 i("35 iw", "XOR AX,imm16", "AX XOR imm16.")

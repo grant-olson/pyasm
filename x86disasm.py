@@ -53,7 +53,3 @@ class x86Disassembler:
             print repr(self.Code.GetString(inst.GetSuffixSize()))
             
 
-if __name__ == '__main__':
-    code = x86Block('h\x00\x00\x00\x00\xe8\x00\x00\x00\x00\x83\xc4\x043\xc0\xc3')
-    dis = x86Disassembler(code)    
-    dis.disasm()
