@@ -102,6 +102,13 @@ A brief description of what is happening durring the pyasm call:
 
   7. Calling hello_world() executes the newly created function.
 
+.. WARNING::
+    The rest of this document assumes that you know x86 assembly language.  A
+    tutorial is beyond the scope of this document.  If you don't know assembly
+    language, you'll want to read an introductory text (such as *The Art of
+    Assembly Language*) as well as downloading Volumes 2 and 3 of the *IA-32
+    Intel Architecture Software Developer's Manual* for reference.
+
 
 ==============
 Everyday usage
@@ -122,12 +129,13 @@ assembly instructions such as `MOV [EAX+4],value`
 Additional notes specific to this assembler are as follows:
 
   + Numbers use python's formatting scheme, so hex is represented as 0xFF and not FFh.
-
+  + Instructions and Registers must be in all caps.  mov eax,0x0 is invalid.
+  
 Instruction Statements
 ----------------------
 
 Instruction statements are reasonably straightforward if you know x86 assembly
-language.  Instruction mneumonics and register names are in all capitals.
+language.
 
 Assembler Directives
 --------------------
@@ -138,76 +146,56 @@ directives are provided for the programmer's convienence.  Anything that is
 done via a directive could be translated into raw assembly, it's just not as
 readable.
 
-+-----------------------+----------------+----------------------------------------+
-|                       |                |                                        |
-| Text Directive        | API Call       | Description                            |
-+=======================+================+========================================+
-|                       |                |                                        |
-| **!LABEL name**       | **.AIL(name)** | Provide a symbolic label to the current|
-|                       |                | memory address.  Primarily used for    |
-|                       |                | loops, if-then logic, etc.  You can use|
-|                       |                | a label and hand-roll a procedure,     |
-|                       |                | but you probably want to use the !PROC |
-|                       |                | directive instead.                     |
-+-----------------------+----------------+----------------------------------------+
-|                       |                |                                        |
-|**!PROC name[type]**   | **.AP(name,**  | Begin a procedure.  This will emit the |
-|                       |     ** type)** | boilerplate code to start a procedure. |
-|                       |                | Arguments and Local variables can be   |
-|                       |                | declared with !ARG and !LOCAL          |
-|                       |                | directives listed below.  These        |
-|                       |                | declarations must occur before any     |
-|                       |                | instruction statements or an error will|
-|                       |                | occur.  This will generate the         |
-|                       |                | boilerplate function startup code,     |
-|                       |                | which consists of PUSHing the EBP      |
-|                       |                | register, copying the current location |
-|                       |                | of ESP, and translating arguments and  |
-|                       |                | local variables into references via the|
-|                       |                | offset of the EBP pointer.  If the     |
-|                       |                | previous sentence didn't make any sense|
-|                       |                | to you, just remember that the EBP     |
-|                       |                | register shouldn't be manipulatedin    |
-|                       |                | your code here or things will get      |
-|                       |                | screwed up.                            |
-+-----------------------+----------------+----------------------------------------+
-|                       |                |                                        |
-| !ARG argname [size]   |  .AddArg(name) | An argument passed to a procedure via  |
-|                       |                | the stack.  By default, we assume the  |
-|                       |                | size is 4 bytes although you can       |
-|                       |                | specify if you need to.                |
-|                       |                |                                        |
-+-----------------------+----------------+----------------------------------------+
-|                       |                |                                        |
-| !LOCAL varname [size] | .AddLocal(name)| A local variable maintained on the     |
-|                       |                | procedure's stack frame.               |
-|                       |                |                                        |
-+-----------------------+----------------+----------------------------------------+
-|                       |                |                                        |
-| !ENDPROC              | .EP()          | End a procedure.  Emit the cleanup code|
-|                       |                | as the caller's responsibility.]       |
-|                       |                |                                        |
-+-----------------------+----------------+----------------------------------------+
-|                       |                |                                        |
-| !CONST name value     | .AC(name,val)  | Just declares a constant that is       |
-|                       |                | replaced in subsequent occurances.     |
-|                       |                | Keep in mind that this is resolved at  |
-|                       |                | compile time, so the values should     |
-|                       |                | really only be numbers.                |
-|                       |                | !CONST hello_world "hello world\\n\\0" |
-|                       |                | is invalid.                            |
-|                       |                |                                        |
-+-----------------------+----------------+----------------------------------------+
-|                       |                |                                        |
-| !CHARS name value     | .AddStr()      | Create a character array (aka a string)|
-|                       |                |                                        |
-+-----------------------+----------------+----------------------------------------+
-|                       |                |                                        |
-| !COMMENT text         |   n/a          | Ignore this line.                      |
-|                       |                |                                        |
-+-----------------------+----------------+----------------------------------------+
+=========================   ====================  ========================================
+Text Directive              API Call              Brief Description
+=========================   ====================  ========================================
+**!CHARS name value**       **.AStr(n,v)**        Create a character array (aka a string)
+**!COMMENT text**           *n/a*                 Comment line.
+**!CONST name value**       **.AC(n,v)**          Create a constant value.
+**!LABEL name**             **.AIL(name)**        Provide a symbolic label for later ref.
+**!PROC name [type]**       **.AP(name,type)**    Begin a procedure.
+**!ARG argname [size]**     **.AA(name,size)**    Add an argument to a procedure def.
+**!LOCAL varname [size]**   **.ALoc(name,size)**  Add a local var to a procedure def.
+**!ENDPROC**                **.EP()**             End a procedure
+=========================   ====================  ========================================
 
+!CHARS name value
+  Create a character array (aka a string)
 
+!COMMENT text
+  Ignore this line.
+
+!CONST name value
+  Just declares a constant that is replaced in subsequent occurances.  Keep in
+  mind that this is resolved at compile time, so the values should really only
+  be numbers.  !CONST hello_world "hello world\\n\\0" is invalid. 
+
+!LABEL name
+  Provide a symbolic label to the current memory address.  Primarily used for
+  loops, if-then logic, etc.  You can use a label and hand-roll a procedure,
+  but you probably want to use the !PROC directive instead.
+
+!PROC name[type]
+  Begin a procedure.  This will emit the boilerplate code to start a procedure.
+  Arguments and Local variables can be declared with !ARG and !LOCAL directives
+  listed below.  These declarations must occur before any instruction
+  statements or an error will occur.  This will generate the boilerplate
+  function startup code, which consists of PUSHing the EBP register, copying
+  the current location of ESP, and translating arguments and local variables
+  into references via the offset of the EBP pointer.  If the previous sentence
+  didn't make any sense to you, just remember that the EBP register shouldn't
+  be manipulatedin your code here or things will get screwed up.
+ 
+!ARG argname [size]
+  An argument passed to a procedure via the stack.  By default, we assume the
+  size is 4 bytes although you can specify if you need to.
+ 
+!LOCAL varname [size]
+  A local variable maintained on the procedure's stack frame.
+
+!ENDPROC
+  End a procedure.  Emit the cleanup code as the caller's responsibility.]
+  
 -------------
 Typical Usage
 -------------
