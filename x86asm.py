@@ -14,6 +14,8 @@ from x86tokenizer import (tokenizeInst,
 
 from x86inst import mnemonicDict, rb, rw, rd
 
+class x86asmError(Exception): pass
+
 ###########################################################
 ## Find right instruction def based on concrete instruction
 ###########################################################
@@ -65,7 +67,7 @@ def possibleRegister(*toks):
         registerVals.append((OPERAND,'r32'))
         registerVals.append((OPERAND,'r/m32'))
     else:
-        raise RuntimeError("Invalid Register name '%s'" % regName)
+        raise x86asmError("Invalid Register name '%s'" % regName)
 
     first,rest = toks[0],toks[1:]
     if not rest:
@@ -102,7 +104,7 @@ def possibleIndirect(*toks):
         elif regName in rd:
             possibleVals.append((OPERAND,'r/m32'))
         else:
-            raise RuntimeError("Invalid Register name '%s'" % regName)
+            raise x86asmError("Invalid Register name '%s'" % regName)
     
     while rest[0] != (RBRACKET, ']'):
         rest = rest[1:]
@@ -140,7 +142,7 @@ def findBestMatch(s):
     if retVal:
         return retVal
     else:
-        raise RuntimeError("Unable to find match for '%s'" % s)
+        raise x86asmError("Unable to find match for '%s'" % s)
 
 def printBestMatch(s):
     print "Best match for '%s' => '%s'" % (s,findBestMatch(s).InstructionString)
@@ -177,25 +179,34 @@ class procedure:
         self.ArgOffset = 4
         self.Locals = []
         self.LocalOffset = 4
+        self.Frozen = 0
         
     def AddArg(self,name,bytes=4):
+        if self.Frozen:
+            raise x86asmError("Cannot add arg %s to procedure %s." \
+                              "This must happen before instrutions are" \
+                              "added." % (self.Name, name))
         self.Args.append( (name, self.ArgOffset, bytes) )
         self.ArgOffset += bytes
 
     def AddLocal(self,name,bytes=4):
+        if self.Frozen:
+            raise x86asmError("Cannot add arg %s to procedure %s." \
+                              "This must happen before instrutions are" \
+                              "added." % (self.Name, name))
         self.Locals.append( (name, self.LocalOffset, bytes) )
         self.LocalOffset += bytes
 
     def LookupArg(self,name):
         for x in self.Args:
             if x[0] == name:
-                return ( (LBRACKET, '['), (REGISTER,'EBP'),(NUMBER, -x[1]), (RBRACKET,']') )
+                return ( (LBRACKET, '['), (REGISTER,'EBP'),(NUMBER, x[1]), (RBRACKET,']') )
         return None
 
     def LookupLocal(self,name):
         for x in self.Locals:
             if x[0] == name:
-                return ( (LBRACKET, '['), (REGISTER,'EBP'),(NUMBER, x[1]), (RBRACKET,']') )
+                return ( (LBRACKET, '['), (REGISTER,'EBP'),(NUMBER, -x[1]), (RBRACKET,']') )
         return None
        
     def LookupVar(self, name):
@@ -203,7 +214,27 @@ class procedure:
         if retVal is None:
             retVal = self.LookupLocal(name)
         return retVal
-    
+
+    def EmitProcStartCode(self, a):
+        """
+        Save EBP
+        Copy ESP so we can use it to reference params and locals
+        Subtrack 
+        """
+        a.AI("PUSH EBP")
+        a.AI("MOV EBP, ESP")
+        a.AI("SUB ESP, %s" % self.LocalOffset)
+
+    def EmitProcEndCode(self, a):
+        """
+        Restore settings and RETurn
+        TODO: Do we need to handle a Return value here?
+        """
+        a.AI("ADD ESP, %s" % self.LocalOffset)
+        a.AI("MOV ESP, EBP")
+        a.AI("POP EBP")
+        a.AI("RET")
+        
 class assembler:
     def __init__(self):
         self.Instructions = []
@@ -213,25 +244,32 @@ class assembler:
 
     def registerLabel(self,lbl):
         if self.Labels.has_key(lbl.Name):
-            raise RuntimeError("Duplicate Label Registration [%s]" % lbl.Name)
+            raise x86asmError("Duplicate Label Registration [%s]" % lbl.Name)
         self.Labels[lbl.Name] = lbl
         
     def AddInstruction(self,inst):
         instToks = tokenizeInst(inst)
         instToksMinusLocals = ()
-        for tok in instToks:
-            if tok[0] != SYMBOL: # do nothing
-                instToksMinusLocals += ( tok,)
-            else: #look for local match
-                local = self.CurrentProcedure.LookupVar(tok[1])
-                if local: #found match
-                    instToksMinusLocals += local
-                else: # defer resolution to second pass
-                    instToksMinusLocals += (tok,)
+        if self.CurrentProcedure: # may have locals
+            for tok in instToks:
+                if tok[0] != SYMBOL: # do nothing
+                    instToksMinusLocals += ( tok,)
+                else: #look for local match
+                    local = self.CurrentProcedure.LookupVar(tok[1])
+                    if local: #found match
+                        instToksMinusLocals += local
+                    else: # defer resolution to second pass
+                        instToksMinusLocals += (tok,)
+        else: # no locals, don't try to substitute
+            instToksMinusLocals = instToks
         print(instToksMinusLocals)
         self.Instructions.append(instToksMinusLocals)
 
     def AI(self,inst):
+        if self.CurrentProcedure and not self.CurrentProcedure.Frozen:
+            #initialize proc
+            self.CurrentProcedure.Frozen = 1
+            self.CurrentProcedure.EmitProcStartCode(self)
         self.AddInstruction(inst)
 
     def AddInstructionLabel(self,name):
@@ -252,6 +290,9 @@ class assembler:
         self.AddData(name,dat)
 
     def AddProcedure(self,name):
+        if self.CurrentProcedure: # didn't emit procedure cleanup code
+            raise x86asmError("Must end procedure '%s' before starting proc " \
+                              " '%s'" % (self.CurrentProcedure.Name, name))
         proc = procedure(name)
         self.registerLabel(proc)
         self.CurrentProcedure = proc
@@ -268,20 +309,28 @@ class assembler:
     def AddLocal(self,name):
         self.CurrentProcedure.AddLocal(name)
 
+    def EndProc(self):
+        if self.CurrentProcedure:
+            self.CurrentProcedure.EmitProcEndCode(self)
+            self.CurrentProcedure = None
+
+    def EP(self):
+        self.EndProc()
+            
 import unittest
 
 class assemblerTests(unittest.TestCase):
     def test_basic_assembler(self):
         a = assembler()
         a.AD('hw_string','Hello, World!\n\0')
-        a.AP('_main')
+        a.AIL('_main')
         a.AI('PUSH hw_string')
         a.AI('CALL _printf')
         a.AI('ADD ESP,4')
         a.AI('XOR EAX,EAX')
         a.AI('RET')
         
-        a.AP('_main2')
+        a.AIL('_main2')
         a.AI('PUSH hw_string')
         a.AI('CALL _printf')
         a.AI('ADD ESP,4')
@@ -299,6 +348,29 @@ class assemblerTests(unittest.TestCase):
         a.AI("MOV EAX,baz")
         a.AI("MOV x,EAX")
         a.AI("MOV y,12")
+        a.EP()
+
+    def test_proc_end(self):
+        a = assembler()
+        a.AP('foo')
+        a.AI('XOR EAX,EAX')
+        self.failUnlessRaises(x86asmError, a.AP, 'bar')
+
+    def test_no_args_after_code(self):
+        a = assembler()
+        a.AP("foo")
+        a.AA("bar")
+        a.AI("MOV bar, 4")
+        self.failUnlessRaises(x86asmError,a.AA,"baz")
+        a.EP()
+
+    def test_no_locals_after_code(self):
+        a = assembler()
+        a.AP("foo")
+        a.AddLocal("bar")
+        a.AI("MOV bar, 4")
+        self.failUnlessRaises(x86asmError,a.AddLocal,"baz")
+        a.EP()
         
 if __name__ == '__main__':
     unittest.main()
