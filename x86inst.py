@@ -633,10 +633,16 @@ class instructionInstance:
             elif typ == OPERAND:
                 #TODO: Cleanup here, remove strings in if statements
                 if val in immediate:
-                    operandStr += "0x%X" % self.Immediate
+                    if self.ImmediateSymbol:
+                        operandStr += self.ImmediateSymbol
+                    else:
+                        operandStr += "0x%X" % self.Immediate
                 elif val in displacement:
-                    operandStr += "0x%X" % (self.Displacement +
-                                          self.NextInstructionLoc())
+                    if self.DisplacementSymbol:
+                        operandStr += self.DisplacementSymbol
+                    else:
+                        operandStr += "0x%X" % (self.Displacement +
+                                              self.NextInstructionLoc())
                 elif val in ('r8','r16','r32','mm','xmm','/digit','REG'):
                     operandStr += self.ModRM.RegOpString(val)
                 elif val in ('r/m8','r/m16','r/m32'):
