@@ -12,7 +12,8 @@ not today.
 
 import struct
 from pickle import decode_long, encode_long
-from x86tokenizer import (tokenizeInstDef,REGISTER,OPCODE,COMMA,OPERAND,
+from x86tokenizer import (tokenizeInstDef,tokenizeInst,
+                          REGISTER,OPCODE,COMMA,OPERAND,
                           LBRACKET, RBRACKET,NUMBER,SYMBOL)
 
 class OpcodeTooShort(Exception):pass
@@ -449,6 +450,8 @@ class instructionInstance:
         return retVal
 
     def LoadConcreteValues(self, toks):
+        if type(toks) == type(""):
+            toks = tokenizeInst(toks)
         print "%s => %s" % (self.Instruction.InstructionString, toks)
         tmpModRM = ModRM()
         firstDef, restDef = (self.Instruction.InstructionDef[0],self.Instruction.InstructionDef[1:])
@@ -480,8 +483,8 @@ class instructionInstance:
                             if firstTok[0] == NUMBER:
                                 self.Displacement = eval(firstTok[1])
                             else:
-                                #TODO: Lookup properly
                                 self.Displacement = 0x0
+                                self.DisplacementSymbol = firstTok[1]
                             firstTok, restTok = restTok[0],restTok[1:]
                         elif firstTok[0] == REGISTER:
                             regTok = firstTok
@@ -495,8 +498,8 @@ class instructionInstance:
                                 if firstTok[0] == NUMBER:
                                     self.Displacement = eval(firstTok[1])
                                 else:
-                                    #TODO: Lookup properly
                                     self.Displacement = 0x0
+                                    self.DisplacementSymbol = firstTok[1]
                                 firstTok, restTok = restTok[0],restTok[1:]
                             else: # no displacement
                                 tmpModRM.Mode = 0
@@ -548,7 +551,7 @@ class instructionInstance:
         for i in self.Instruction.Opcode:
             retVal += "%02X " % i
             size += 1
-        if self.ModRM:
+        if self.Instruction.HasModRM:
             retVal += "%02X " % self.ModRM.SaveToByte()
             size += 1
             if self.ModRM.HasSIB():

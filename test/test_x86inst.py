@@ -18,7 +18,22 @@ class test_concrete_value_resolution(unittest.TestCase):
 
         a.Compile()   
 
-
+class test_text_generation(unittest.TestCase):
+    def test_ModRM_calculation(self):
+        "wasn't calculating this properly.  Added an extra 00 to some text output"
+        m = findBestMatch("CALL foo")
+        i = m.GetInstance()
+        i.LoadConcreteValues("CALL foo")
+        self.assertEqual(i.OpText(),
+                         '  00000000: E8 00 00 00 00          CALL      0x5       ')
+    def test_other_bad_string(self):
+        m = findBestMatch("MOV EAX,0xCCCCCCCC")
+        i = m.GetInstance()
+        i.LoadConcreteValues("MOV EAX,0xCCCCCCCC")
+        print i.OpText()
+        self.assertEqual(i.OpText(),
+                         '  00000000: E8 00 00 00 00          CALL      0x5       ')
+    
 if __name__ == "__main__":
     unittest.main()
     
