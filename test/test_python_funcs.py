@@ -2,17 +2,11 @@
 # See license.txt for terms.
 
 import unittest
-import pyasm.excmem
 from pyasm.x86asm import assembler, CDECL, STDCALL, PYTHON
 from pyasm.x86cpToMemory import CpToMemory
 
-class test_excmem(unittest.TestCase):
-    def test_excmem(self):
-        cp = pyasm.excmem.GetCurrentExecutablePosition()
-        self.assertEquals(cp, pyasm.excmem.AllocateExecutableMemory(4))
-        self.assertEquals(cp + 4, pyasm.excmem.GetCurrentExecutablePosition())
-        pyasm.excmem.LoadExecutableMemoryString(cp,"aaaa")
-        self.assertEquals(cp + 4, pyasm.excmem.GetCurrentExecutablePosition())
+class test_python_funcs(unittest.TestCase):
+
 
     def test_simple_function(self):
         a = assembler()
@@ -23,7 +17,6 @@ class test_excmem(unittest.TestCase):
         #a.AI("INT 3")
         a.AI("PUSH hello_world")
         a.AI("CALL PySys_WriteStdout")
-        a.AI("ADD ESP,0x4") #CDECL CLEANUP
         a.AI("MOV EAX,%s" % id(None))
         a.AI("ADD [EAX],0x1") #refcount
         a.EP()
@@ -34,7 +27,6 @@ class test_excmem(unittest.TestCase):
         #a.AI("INT 3")
         a.AI("PUSH hello_world")
         a.AI("CALL PySys_WriteStdout")
-        a.AI("ADD ESP,0x4") #cdecl cleanup
         a.AI("MOV EAX,%s" % id(None))
         a.AI("ADD [EAX],0x1") #refcount
         a.EP()
