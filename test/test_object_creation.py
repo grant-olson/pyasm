@@ -32,6 +32,7 @@ _main:
 """
 
 from pyasm.x86asm import assembler
+from pyasm.x86cpToCoff import CpToCoff
 import unittest
 
 class test_object_creation(unittest.TestCase):
@@ -73,6 +74,12 @@ class test_object_creation(unittest.TestCase):
         self.assertEquals(cp.Data,'Hello, World\n\x00GOODBYE WORLD!\n\x00')
         self.assertEquals(cp.DataSymbols,[('hello_world', 0), ('goodbye_world', 14)])
 
+        coff = CpToCoff(cp).makeReleaseCoff()
+
+        f = file("./objCreate.obj","wb")
+        coff.WriteToFile(f)
+        f.close()
+        
 if __name__ == '__main__':
     unittest.main()
     
