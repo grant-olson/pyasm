@@ -10,6 +10,7 @@ I need to get the instruction tokenizer working for this to take off.
 """
 
 import re
+from x86tokenizer import tokenizeInst
 
 class labelRef:
     def __init__(self, name):
@@ -44,6 +45,7 @@ class assembler:
         self.Labels[lbl.Name] = lbl
         
     def AddInstruction(self,inst):
+        print tokenizeInst(inst)
         self.Instructions.append(inst)
 
     def AI(self,inst):
@@ -75,6 +77,7 @@ if __name__ == '__main__':
     a.AI('CALL _printf')
     a.AI('ADD ESP,4')
     a.AI('XOR EAX,EAX')
+    a.AI('MOV [EAX+12],12')
     a.AI('RET')
 
     

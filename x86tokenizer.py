@@ -25,27 +25,125 @@ Of course I still need to implement the tokenizeInst function.
 
 import re
 
-opcodeRe = '(?P<opcode>[A-Z]+)'
-operandRe = '(?P<operand>[a-z/:0-9]+)'
-commaRe = '(?P<comma>[,]+)'
-regRe = '(?P<register>AL|CL|DL|BL|AH|CH|DH|BH|AX|CX|DX|BX|SP|BP|SI|DI|'\
-        'EAX|ECX|EDX|EBX|ESP|EBP|ESI|EDI|'\
-        '\[AL\]|\[CL\]|\[DL\]|\[BL\]|\[AH\]|\[CH\]|\[DH\]|\[BH\]|'\
-        '\[AX\]|\[CX\]|\[DX\]|\[BX\]|\[SP\]|\[BP\]|\[SI\]|\[DI\]|'\
-        '\[EAX\]|\[ECX\]|\[EDX\]|\[EBX\]|\[ESP\]|\[EBP\]|\[ESI\]|\[EDI\])'
-instructionRe = re.compile("(?:\s*(?:%s|%s|%s|%s)(?P<rest>.*))" % \
-                           (regRe,opcodeRe,commaRe,operandRe))
-REGISTER,OPCODE,COMMA,OPERAND = range(1,5)
+#
+class tokenizeError(Exception):pass
 
-def tokenizeInstDef(instString):
+#token IDs
+REGISTER,OPCODE,COMMA,OPERAND,LBRACKET,RBRACKET,NUMBER,SYMBOL = range(1,9)
+
+tokLookup = {'REGISTER':REGISTER,
+             'OPCODE':OPCODE,
+             'COMMA':COMMA,
+             'OPERAND':OPERAND,
+             'LBRACKET':LBRACKET,
+             'RBRACKET':RBRACKET,
+             'NUMBER':NUMBER,
+             'SYMBOL':SYMBOL,
+             }
+#Re's
+
+# Re's used by both tokeinizers
+opcodeRe = '(?P<OPCODE>[A-Z]+)'
+commaRe = '(?P<COMMA>,)'
+
+# Instruction defs can have hard-coded indirect r/m's in them.
+# An actual instruction will extract the LBRACKET and RBRACKET
+# and include any appropriate offsets: 'MOV [EDP + 4], AX'
+# This will never happen in an instruction def so we need to parse differently
+basicRegisterRe = 'AL|CL|DL|BL|AH|CH|DH|BH|AX|CX|DX|BX|SP|BP|SI|DI|'\
+        'EAX|ECX|EDX|EBX|ESP|EBP|ESI|EDI'
+indirectRegisterRe = '\[AL\]|\[CL\]|\[DL\]|\[BL\]|\[AH\]|\[CH\]|\[DH\]|\[BH\]|'\
+        '\[AX\]|\[CX\]|\[DX\]|\[BX\]|\[SP\]|\[BP\]|\[SI\]|\[DI\]|'\
+        '\[EAX\]|\[ECX\]|\[EDX\]|\[EBX\]|\[ESP\]|\[EBP\]|\[ESI\]|\[EDI\]'
+defRegRe = '(?P<REGISTER>%s|%s)' % (basicRegisterRe,indirectRegisterRe)
+instRegRe= '(?P<REGISTER>%s)' % (basicRegisterRe)
+
+# def specific stuff
+#operandRe = '(?P<OPERAND>[a-z/:0-9]+)'
+#TODO: fix this better
+ptrRe = 'ptr16\:16|ptr32\:32'
+memRe = 'm16\:16|m32\:32'
+sregRe = 'Sreg'
+moffsRe = 'moffs8|moffs16|moffs32'
+immediateRe = 'imm8|imm16|imm32'
+relativeRe = 'rel8|rel16|rel32'
+rRe = 'r8|r16|r32'
+mmRe = 'mm|xmm'
+rmRe = 'r/m8|r/m16|r/m32|m8|m16|m32|m'
+otherRe = '/digit|REG'
+operandRe = '(?P<OPERAND>%s|%s|%s|%s|%s|%s|%s|%s|%s|%s)' % (ptrRe, memRe, sregRe,
+                                                            moffsRe, immediateRe,
+                                                            relativeRe, rRe, mmRe,
+                                                            rmRe, otherRe)
+
+#instructionRe specific stuff
+
+lbracketRe = '(?P<LBRACKET>\[)'
+rbracketRe = '(?P<RBRACKET>\])'
+numberRe = '(?P<NUMBER>[\+\-]?(0x[0-9A-Fa-f]+|[0-9]+))'
+symbolRe = '(?P<SYMBOL>[a-z_]+)'
+
+#define final re's
+instructionDefRe = re.compile("(?:\s*(?:%s|%s|%s|%s)(?P<rest>.*))" % \
+                           (defRegRe,operandRe,opcodeRe,commaRe))
+
+instructionRe = re.compile("(?:\s*(?:%s|%s|%s|%s|%s|%s|%s)(?P<rest>.*))" % \
+                           (lbracketRe,rbracketRe,instRegRe,
+                            opcodeRe,commaRe,numberRe,symbolRe))
+
+def tokenizeString(s,reToProcess):
     lst = []
-    rest = instString
+    rest = s
     while rest:
-        instDict = instructionRe.match(rest).groupdict()
-        if instDict['register']: lst.append((REGISTER,instDict['register']))
-        if instDict['operand']: lst.append((OPERAND,instDict['operand']))
-        if instDict['opcode']: lst.append((OPCODE,instDict['opcode']))
-        if instDict['comma']: lst.append((COMMA,instDict['comma']))
+        instMatch = reToProcess.match(rest)
+        if not instMatch:
+            raise tokenizeError("Couldn't find match for string '%s' from '%s'" % (rest,s))
+        
+        instDict = instMatch.groupdict()
+        if instDict['REGISTER']: lst.append((REGISTER,instDict['REGISTER']))
+        elif instDict['OPCODE']: lst.append((OPCODE,instDict['OPCODE']))
+        elif instDict['COMMA']: lst.append((COMMA,instDict['COMMA']))
+        elif instDict.has_key('OPERAND') and instDict['OPERAND']:
+            # only defs have operands.
+            #only instructions have anything below here, but if it's a def
+            #we've already (hopefully) found a match so we don't need to check
+            #for key existance.
+            lst.append((OPERAND,instDict['OPERAND']))
+        elif instDict['LBRACKET']: lst.append((LBRACKET,instDict['LBRACKET']))
+        elif instDict['RBRACKET']: lst.append((RBRACKET,instDict['RBRACKET']))
+        elif instDict['NUMBER']: lst.append((NUMBER,instDict['NUMBER']))
+        elif instDict['SYMBOL']: lst.append((SYMBOL,instDict['SYMBOL']))
+        else:
+            raise tokenizeError("Tokenization failed on string %s, match %s" \
+                                  % (string,rest))
         rest = instDict['rest']
     return tuple(lst)
 
+def tokenizeInstDef(s):
+    return tokenizeString(s, instructionDefRe)
+
+def tokenizeInst(s):
+    return tokenizeString(s, instructionRe)
+
+if __name__ == '__main__':
+    # move to unit test
+    #
+    re.compile(opcodeRe)
+    re.compile(operandRe)
+    re.compile(commaRe)
+    re.compile(defRegRe)
+    re.compile(basicRegisterRe)
+    re.compile(lbracketRe)
+    re.compile(rbracketRe)
+    re.compile(numberRe)
+    re.compile(symbolRe)
+    re.compile(instRegRe)
+
+    print tokenizeInst('PUSH hw_string')
+    print tokenizeInst('CALL _printf')
+    print tokenizeInst('ADD ESP,4')
+    print tokenizeInst('XOR EAX,EAX')
+    print tokenizeInst('MOV [EAX],12')
+    print tokenizeInst('MOV [EAX+0xCC],12')
+    print tokenizeInst('MOV [EAX+12],12')
+    print tokenizeInst('RET')    
