@@ -44,12 +44,12 @@ class x86Disassembler:
             try:
                 while 1:
                     try:
-                        inst = opcodeDict.GetOp(tuple(op), preferredSize=32)
+                        inst = opcodeDict.GetOp(tuple(op))
                         break
                     except OpcodeNeedsModRM,x:
                         modRM = struct.unpack("<B", self.Code.Data[self.Code.Location])[0]
                         inst = opcodeDict.GetOp(tuple(op),
-                                                modRM=modRM, preferredSize=32)
+                                                modRM=modRM)
                         break
                     except OpcodeTooShort,x:
                         op.append(self.Code.GetUnsignedByte())

@@ -2,7 +2,12 @@ import re, struct
 
 class OpcodeTooShort(Exception):pass
 class OpcodeNeedsModRM(Exception):pass # for /d info and SIB calculation
-class OpcodeNeedsPreferredSize(Exception):pass # for 16/32 byte dupes
+
+#
+# These could be 16, but that doesn't make since for windows
+# They are overridden with opcode prefixes
+#
+DefaultOperandSize = 32
 
 class OpcodeDict(dict):
     """
@@ -27,30 +32,31 @@ class OpcodeDict(dict):
                 tmpKey = key[:i]
                 dict.__setitem__(self,tmpKey,None)
                 
-    def GetOp(self,opcode,modRM=None,preferredSize=None):
+    def GetOp(self,opcode,modRM=None):
         lst = self.__getitem__(opcode)
         
         if modRM is not None:
             mrm = ModRM(modRM)
             digit = "/%s" % mrm.RegOp
             lst = [item for item in lst if digit in item.OpcodeFlags]
-        if preferredSize is not None:
-            if preferredSize == 16:
-                lst = [item for item in lst if item.InstructionString.find('r32') == -1]
-                lst = [item for item in lst if item.InstructionString.find('r/m32') == -1]
-                lst = [item for item in lst if item.InstructionString.find('imm32') == -1]
-                lst = [item for item in lst if item.InstructionString.find('rel32') == -1]
-                lst = [item for item in lst if item.InstructionString.find('m32') == -1]
-                lst = [item for item in lst if 'rd' not in item.OpcodeFlags]
-            elif preferredSize == 32:
-                lst = [item for item in lst if item.InstructionString.find('r16') == -1]
-                lst = [item for item in lst if item.InstructionString.find('r/m16') == -1]
-                lst = [item for item in lst if item.InstructionString.find('imm16') == -1]
-                lst = [item for item in lst if item.InstructionString.find('rel16') == -1]
-                lst = [item for item in lst if item.InstructionString.find('m16') == -1]
-                lst = [item for item in lst if 'rw' not in item.OpcodeFlags]
-            else:
-                raise RuntimeError("Invalid Preferred size")
+            
+        if DefaultOperandSize == 16:
+            lst = [item for item in lst if item.InstructionString.find('r32') == -1]
+            lst = [item for item in lst if item.InstructionString.find('r/m32') == -1]
+            lst = [item for item in lst if item.InstructionString.find('imm32') == -1]
+            lst = [item for item in lst if item.InstructionString.find('rel32') == -1]
+            lst = [item for item in lst if item.InstructionString.find('m32') == -1]
+            lst = [item for item in lst if 'rd' not in item.OpcodeFlags]
+        elif DefaultOperandSize == 32:
+            lst = [item for item in lst if item.InstructionString.find('r16') == -1]
+            lst = [item for item in lst if item.InstructionString.find('r/m16') == -1]
+            lst = [item for item in lst if item.InstructionString.find('imm16') == -1]
+            lst = [item for item in lst if item.InstructionString.find('rel16') == -1]
+            lst = [item for item in lst if item.InstructionString.find('m16') == -1]
+            lst = [item for item in lst if 'rw' not in item.OpcodeFlags]
+        else:
+            raise RuntimeError("Invalid DefaultOperandSize")
+
                 
         if len(lst) == 0:
             raise RuntimeError("Invalid/Unimplemented Opcode [%s]" % opcode)
@@ -60,7 +66,9 @@ class OpcodeDict(dict):
             for flag in op.OpcodeFlags:
                 if flag in ('/0','/1','/2','/3','/4','/5','/6','/7'):
                     raise OpcodeNeedsModRM("Opcode %s" % op.Opcode)
-            raise OpcodeNeedsPreferredSize()
+            for x in lst:
+                print x.Description
+            raise RuntimeError("Shouldn't get here")
         else:
             return lst[0]
         
