@@ -1,8 +1,11 @@
-#
-# Contains all the functions to go between little-endian data streams and
-# actual binary data
-#
+"""
+x86PackUnpack.py
+----------------
 
+Contains all the functions to go between little-endian data streams and
+actual binary data.
+
+"""
 import struct, sys
 
 def pylongToSignedInt(x):

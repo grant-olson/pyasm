@@ -1,3 +1,13 @@
+"""
+coff.py
+-------
+
+Provides the framework to convert raw machine code to/from coff file formats.
+
+So far I can build a standard coff file but still need an external linker to
+make an exe.
+"""
+
 import sys
 from coffConst import *
 from x86PackUnpack import *

@@ -1,3 +1,14 @@
+"""
+x86asm.py
+---------
+
+Ultimately create a two-pass assembler so we can assemble raw machine code.
+We will also want to come up with some way to load code straight into memory
+at runtime instead of just generating coff files.
+
+I need to get the instruction tokenizer working for this to take off.
+"""
+
 import re
 
 class labelRef:

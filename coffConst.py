@@ -1,4 +1,7 @@
-# COFF image defs combed from winnt.h appox. line # 6064
+"""
+Windows specific constants for coff files grabbed from from winnt.h
+appox. line # 6064
+"""
 
 class SymbolValues:
     SYM_UNDEFINED = 0

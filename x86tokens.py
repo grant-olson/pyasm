@@ -1,3 +1,10 @@
+"""
+x86tokens.py
+------------
+
+I really don't think I'm using this at all.
+"""
+
 class token:
     """"
     A token's only useful property is that it evaluates to itself
