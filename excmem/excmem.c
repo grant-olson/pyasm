@@ -31,7 +31,7 @@ permissions at the same time.
 
 
 static PyObject *ExcmemError;
-PyMethodDef ExcmemMethods[];
+static PyMethodDef ExcmemMethods[];
 
 void *startExcMemory;
 void *posExcMemory;

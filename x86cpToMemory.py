@@ -20,9 +20,9 @@ if sys.platform == 'win32':
         except pywintypes.error:
             raise RuntimeError("Unable to resolve external symbol '%s'" % funcName)
         return addr
-elif sys.platform in ('linux'):
+elif sys.platform in ('linux2'):
     def runtimeResolve(funcName):
-        return pyasm.excmem.GetSymbolAddress("xxx",funcName)
+        return excmem.GetSymbolAddress(sys.executable,funcName)
 else:
     raise RuntimeError("Don't know how to resolve external symbols for platform '%s'" % sys.platform)
 

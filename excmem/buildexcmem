@@ -1,0 +1,7 @@
+#/bin/sh
+
+#
+# this is just temporary until I learn how to do a decent cross-platform
+# makefile.  (Yep, I'm a Windows guy.)
+
+gcc -shared -I/usr/local/include/python2.4 -L/usr/local/lib/python2.4 excmem.c -o ../excmem.so
