@@ -1,6 +1,3 @@
-# TODO: how do we handle dup opcodes for 16 and 32 bit?
-
-
 import re
 
 class OpcodeTooShort(Exception):pass
@@ -39,7 +36,19 @@ class OpcodeDict(dict):
             digit = "/%s" % digit
             lst = [item for item in lst if digit in item.OpcodeFlags]
         if preferredSize is not None:
-            pass
+            if preferredSize == 16:
+                lst = [item for item in lst if item.InstructionString.find('r32') == -1]
+                lst = [item for item in lst if item.InstructionString.find('r/m32') == -1]
+                lst = [item for item in lst if item.InstructionString.find('imm32') == -1]
+                lst = [item for item in lst if item.InstructionString.find('rel32') == -1]
+            elif preferredSize == 32:
+                lst = [item for item in lst if item.InstructionString.find('r16') == -1]
+                lst = [item for item in lst if item.InstructionString.find('r/m16') == -1]
+                lst = [item for item in lst if item.InstructionString.find('imm16') == -1]
+                lst = [item for item in lst if item.InstructionString.find('rel16') == -1]
+            else:
+                raise RuntimeError("Invalid Preferred size")
+                
         if len(lst) < 0:
             raise RuntimeError("Can't find opcode")
         elif len(lst) > 1:
@@ -162,56 +171,56 @@ class instruction:
 i = instruction
 
 i("04 ib", "ADD AL,imm8", "Add imm8 to AL")
-#i("05 iw", "ADD AX,imm16", "Add imm16 to AX")
+i("05 iw", "ADD AX,imm16", "Add imm16 to AX")
 i("05 id", "ADD EAX,imm32", "Add imm32 to EAX")
 i("80 /0 ib", "ADD r/m8,imm8", "Add imm6 to r/m8")
 i("81 /0 iw", "ADD r/m16,imm16", "Add imm16 to r/m16")
 i("81 /0 id", "ADD r/m32,imm32", "Add imm32 to r/m32")
-#i("83 /0 ib", "ADD r/m16, imm8", "Add sign extended imm8 to r/m16")
+i("83 /0 ib", "ADD r/m16, imm8", "Add sign extended imm8 to r/m16")
 i("83 /0 iw", "Add r/m32,imm8", "Add sign extended imm8 to r/m32")
 i("00 /r", "Add r/m8,r8", "Add r8 to r/m8")
-#i("01 /r", "Add r/m16,r16", "Add r16 to r/m16")
+i("01 /r", "Add r/m16,r16", "Add r16 to r/m16")
 i("01 /r", "Add r/m32,r32", "Add r32 to r/m32")
 i("02 /r", "Add r8,r/m8", "Add r/m8 to r/8")
-#i("03 /r", "Add r16,r/m16", "Add r/m16 to r16")
+i("03 /r", "Add r16,r/m16", "Add r/m16 to r16")
 i("03 /r", "Add r32,r/m32", "Add r/m32 to r32")
 
-#i("E8 cw", "CALL rel16", "Call near, relative, displacement relative to next instruction")
+i("E8 cw", "CALL rel16", "Call near, relative, displacement relative to next instruction")
 i("E8 cd", "CALL rel32", "Call near, relative, displacement relative to next instruction")
 i("FF /2", "CALL r/m16", "Call near, absolute indirect, address given in r/m16")
 i("FF /2", "CALL r/m32", "Call near, absolute indirect, address given in r/m32")
-#i("9A cd", "CALL ptr16:16", "Call far, absolute, address given in operand")
+i("9A cd", "CALL ptr16:16", "Call far, absolute, address given in operand")
 i("9A cp", "CALL ptr32:32", "Call far, absolute, address given in operand")
 i("FF /3", "CALL m16:16", "Call far, absolute indirect, address given in m16:16")
 i("FF /3", "CALL m32:32", "Call far, absolute indirect, address given in m32:32")
 
 
 i("88 /r","MOV r/m8,r8","Move r8 to r/m8.")
-#i("89 /r","MOV r/m16,r16","Move r16 to r/m16.")
+i("89 /r","MOV r/m16,r16","Move r16 to r/m16.")
 i("89 /r", "MOV r/m32,r32", "Move r32 to r/m32")
 i("8A /r","MOV r8,r/m8","Move r/m8 to r8")
-#i("8B /r", "MOV r16,r/m16","Move r/m16 to r16")
+i("8B /r", "MOV r16,r/m16","Move r/m16 to r16")
 i("8B /r","MOV r32,r/m32", "Move r/m32 to r32")
 i("8C /r", "MOV r/m16,Sreg", "Move Segment register to r/m16")
 i("8E /r", "MOV Sreg,r/m16", "Move r/m16 to Segment Register")
 i("A0", "MOV AL,moffs8", "Move byte at (sef:offset) to AL.")
-#i("A1", "MOV AX,moffs16", "Move word at (seg:offset) to AX.")
+i("A1", "MOV AX,moffs16", "Move word at (seg:offset) to AX.")
 i("A1", "MOV EAX,moffs32","Move doubleword at (seg:offset) to EAX.")
 i("A2","MOV moffs8,AL","Move AL to (seg:offset)")
 i("A3", "MOV moffs16,AX", "Move AX to (seg:offset)")
 i("B0 +rb","MOV r8,imm8", "Move imm8 to r8")
-#i("B8 +rw", "MOV r16,imm16","Move imm16 to r16")
+i("B8 +rw", "MOV r16,imm16","Move imm16 to r16")
 i("B8 +rd", "MOV r32,imm32", "Move imm32 to r32")
 i("C6 /0", "MOV r/m8,imm8", "Move imm8 to r/m8")
-#i("C7 /0", "MOV r/m16,imm16", "Move imm16 to r/m16")
+i("C7 /0", "MOV r/m16,imm16", "Move imm16 to r/m16")
 i("C7 /0", "MOV r/m32,imm32", "Move imm32 to r/m32")
 
-#i("FF /6", "PUSH r/m16", "Push r/m16.")
+i("FF /6", "PUSH r/m16", "Push r/m16.")
 i("FF /6", "PUSH r/m32", "PUSH r/m32.")
-#i("50 +rw", "PUSH r16", "Push r16.")
+i("50 +rw", "PUSH r16", "Push r16.")
 i("50 +rd", "PUSH r32", "Push r32.")
 i("6A", "PUSH imm8", "Push imm8.")
-#i("68", "PUSH imm16", "push imm16.")
+i("68", "PUSH imm16", "push imm16.")
 i("68", "PUSH imm32", "Push imm32.")
 i("0E", "PUSH CS", 'Push CS')
 i("16", "PUSH SS", "Push SS")
@@ -226,16 +235,16 @@ i("C2 iw", "RET imm16", "Near return to calling procedure and pop imm16 bytes fr
 i("CA iw", "RET imm16", "Far Return to calling procedure and pop imm16 bytes from the stack")
 
 i("34 ib", "XOR AL, imm8", "AL XOR imm8.")
-#i("35 iw", "XOR AX,imm16", "AX XOR imm16.")
+i("35 iw", "XOR AX,imm16", "AX XOR imm16.")
 i("35 id", "XOR EAX,imm32", "EAX XOR imm32.")
 i("80 /6 ib", "XOR r/m8,imm8", "r/m8 XOR imm8.")
-#i("81 /6 iw", "XOR r/m16,imm16", "r/m16 xor imm16")
+i("81 /6 iw", "XOR r/m16,imm16", "r/m16 xor imm16")
 i("81 /6 iw", "XOR r/m32,imm32", "r/m32 xor imm32")
-#i("83 /6 ib", "XOR r/m16,imm8", "r/m16 XOR imm8 (sign-extended)")
+i("83 /6 ib", "XOR r/m16,imm8", "r/m16 XOR imm8 (sign-extended)")
 i("83 /6 iw", "XOR r/m32,imm8", "r/m32 XOR imm8 (sign-extended)")
 i("30 /r", "XOR r/m8,r8", "r/m8 XOR r8.")
-#i("31 /r", "XOR r/m16,r16", "r/m16 XOR r16")
+i("31 /r", "XOR r/m16,r16", "r/m16 XOR r16")
 i("31 /r", "XOR r/m16,r16", "r/m16 XOR r16")
 i("32 /r", "XOR r8,r/m8", "r8 XOR r/m8")
-#i("33 /r", "XOR r16,r/m16", "r16 XOR r/m16")
+i("33 /r", "XOR r16,r/m16", "r16 XOR r/m16")
 i("33 /r", "XOR r32,r/m32", "r32 XOR r/m32")
