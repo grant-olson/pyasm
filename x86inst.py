@@ -714,8 +714,9 @@ i("FF /4", "JMP r/m32", "Jump near, absolute indirect, address given in r/m32.")
 #i("FF /5", "JMP m16:32", "Jump far, absolute indirect, address given in m16:32.")
 
 
-i("8D /r", "LEA r16,m", "Store effective address for m in register r16.")
-i("8D /r", "LEA r32,m", "Store effective address for m in register r32")
+#changed def here.  Should be 'm'
+i("8D /r", "LEA r16,m16", "Store effective address for m in register r16.")
+i("8D /r", "LEA r32,m32", "Store effective address for m in register r32")
 
 i("88 /r","MOV r/m8,r8","Move r8 to r/m8.")
 i("89 /r","MOV r/m16,r16","Move r16 to r/m16.")
@@ -775,6 +776,7 @@ i("F3 AD",  "REP LODS AX", "Load (E)CX words from DS:[(E)SI] to AX.")
 i("F3 AD", "REP LODS EAX", "Load (E)CX doublewords from DS:[(E)SI] to EAX.")
 i("F3 AA", "REP STOS m8", "Fill (E)CX bytes at ES:[(E)DI] with AL.")
 i("F3 AB", "REP STOS m16", "Fill (E)CX words at ES:[(E)DI] with AX.")
+i("F3 AB", "REP STOS m32", "Fill (E)CX words at ES:[(E)DI] with AX.")
 i("F3 AB", "REP STOS [EDI]" ,"Fill (E)CX doublewords at ES:[(E)DI] with EAX.")
 i("F3 A6", "REPE CMPS m8,m8", "Find nonmatching bytes in ES:[(E)DI] and DS:[(E)SI].")
 i("F3 A7", "REPE CMPS m16,m16", "Find nonmatching words in ES:[(E)DI] and DS:[(E)SI].")

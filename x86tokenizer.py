@@ -108,7 +108,18 @@ def tokenizeString(s,reToProcess):
             #only instructions have anything below here, but if it's a def
             #we've already (hopefully) found a match so we don't need to check
             #for key existance.
-            lst.append((OPERAND,instDict['OPERAND']))
+
+            opText = instDict['OPERAND']
+            # Hack for 'm' codes.  These are stored in the RM field,
+            # But register values are technically invalid.  Should this be
+            # verified while compiling?
+            if opText == 'm32':
+                opText = 'r/m32'
+            elif opText == 'm16':
+                opText = 'r/m16'
+            elif opText == 'm8':
+                opText = 'r/m8'
+            lst.append((OPERAND,opText))
         elif instDict['LBRACKET']: lst.append((LBRACKET,instDict['LBRACKET']))
         elif instDict['RBRACKET']: lst.append((RBRACKET,instDict['RBRACKET']))
         elif instDict['NUMBER']: lst.append((NUMBER,instDict['NUMBER']))
