@@ -244,4 +244,5 @@ class SectionFlags:
         ALIGN_2048BYTES:'ALIGN_2048BYTES',
         ALIGN_4096BYTES:'ALIGN_4096BYTES',
         ALIGN_8192BYTES:'ALIGN_8192BYTES',
-        }    
+        }
+
