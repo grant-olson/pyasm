@@ -78,7 +78,11 @@
 				Name="VCLinkerTool"
 				OutputFile="..\$(ProjectName).pyd"
 				LinkIncremental="1"
-				GenerateDebugInformation="TRUE"/>
+				GenerateDebugInformation="TRUE"
+				GenerateMapFile="TRUE"
+				MapFileName="$(OutDir)/$(ProjectName).map"
+				MapExports="TRUE"
+				MapLines="TRUE"/>
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool
