@@ -4,8 +4,16 @@
 from x86inst import RELATIVE,DIRECT
 from x86PackUnpack import ulongToString
 
-import win32api
 import logging
+
+import win32api
+python24Handle = win32api.GetModuleHandle("python24")
+
+def WindowsRuntimeResolve(funcName):
+    return win32api.GetProcAddress(python24,funcName)
+
+#we'll eventually have linux logic here as well
+runtimeResolve = WindowsRuntimeResolve
 
 class CpToMemory:
     def __init__(self,cp,memAccess):
@@ -18,8 +26,7 @@ class CpToMemory:
         if self.symbols.has_key(sym):
             return self.symbols[sym]
         else: #try runtime resolution, windows specific
-            python24 = win32api.GetModuleHandle("python24")
-            funcaddress = win32api.GetProcAddress(python24, sym)
+            funcaddress = runtimeResolve(sym)
             self.symbols[sym] = funcaddress
             return funcaddress
             
