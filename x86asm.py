@@ -52,10 +52,13 @@ class assembler:
         self.Data.append(lbl)
         self.Data.append(data(dat))
 
+    def AD(self,name,dat):
+        self.AddData(name,dat)
+
 
 if __name__ == '__main__':
     a = assembler()
-    a.AddData('hw_string','Hello, World!\n\0')
+    a.AD('hw_string','Hello, World!\n\0')
     a.AIL('_main')
     a.AI('PUSH hw_string')
     a.AI('CALL _printf')
