@@ -1,5 +1,5 @@
 +++++++++++++++++++++++++
-PyASM User's Guide V. 0.2
+PyASM User's Guide V. 0.3
 +++++++++++++++++++++++++
 
 by Grant Olson <olsongt at verizon.net>
