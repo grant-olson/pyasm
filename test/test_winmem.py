@@ -36,8 +36,9 @@ class test_winmem(unittest.TestCase):
         a.EP()
         
         mem = CpToMemory(a.Compile(),pyasm.winmem)
-        mem.MakeMemory(globals())
-
+        mem.MakeMemory()
+        mem.BindPythonFunctions(globals())
+        
         test_print("Foo")
         test_print2('bar')
         

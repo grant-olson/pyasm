@@ -702,9 +702,9 @@ i("3A /r", "CMP r8,r/m8", "Compare r/m8 with r8.")
 i("3B /r", "CMP r16,r/m16", "Compare r/m16 with r16.")
 i("3B /r", "CMP r32,r/m32", "Compare r/m32 with r32.")
 
-#i("CC", "INT 3", "Interrupt 3—trap to debugger.")
+#i("CC", "INT 3", "Interrupt 3 - trap to debugger.")
 i("CD ib", "INT imm8", "Interrupt vector number specified by immediate byte.")
-i("CE", "INTO", "Interrupt 4—if overflow flag is 1.")
+i("CE", "INTO", "Interrupt 4 - if overflow flag is 1.")
 
 i("77 cb", "JA rel8", "Jump short if above (CF=0 and ZF=0).")
 i("73 cb", "JAE rel8", "Jump short if above or equal (CF=0).")

@@ -10,7 +10,7 @@ import win32api
 python24Handle = win32api.GetModuleHandle("python24")
 
 def WindowsRuntimeResolve(funcName):
-    return win32api.GetProcAddress(python24,funcName)
+    return win32api.GetProcAddress(python24Handle,funcName)
 
 #we'll eventually have linux logic here as well
 runtimeResolve = WindowsRuntimeResolve
@@ -25,23 +25,29 @@ class CpToMemory:
     def LookupAddress(self,sym):
         if self.symbols.has_key(sym):
             return self.symbols[sym]
-        else: #try runtime resolution, windows specific
+        else: #try runtime resolution, currently windows specific
             funcaddress = runtimeResolve(sym)
             self.symbols[sym] = funcaddress
             return funcaddress
+
+    def BindPythonFunctions(self,glb=None):
+        if glb is None:
+            glb = globals()
+        for proc in self.cp.CodeSymbols:
+            glb[proc[0]] = self.memAccess.BindFunctionAddress(proc[1] + self.codeAddr)
             
     def MakeMemory(self,glb=None):
         if not glb:
             glb = globals()
             
-        codeAddr = self.memAccess.AllocateExecutableMemory(len(self.cp.Code))
-        dataAddr = self.memAccess.AllocateExecutableMemory(len(self.cp.Data))
+        self.codeAddr = self.memAccess.AllocateExecutableMemory(len(self.cp.Code))
+        self.dataAddr = self.memAccess.AllocateExecutableMemory(len(self.cp.Data))
 
         self.symbols = {}        
         for sym in self.cp.CodeSymbols:
-            self.symbols[sym[0]] = sym[1] + codeAddr
+            self.symbols[sym[0]] = sym[1] + self.codeAddr
         for sym in self.cp.DataSymbols:
-            self.symbols[sym[0]] = sym[1] + dataAddr
+            self.symbols[sym[0]] = sym[1] + self.dataAddr
 
         self.resolvedCode = self.cp.Code # nondestructive on cp
 
@@ -49,7 +55,11 @@ class CpToMemory:
             if patch[2] == DIRECT:
                 resolvedAddr = self.LookupAddress(patch[0])
             elif patch[2] == RELATIVE:
-                resolvedAddr = self.LookupAddress(patch[0]) - (codeAddr + patch[1] + 4)
+                #XXX
+                # I'm just assuming that the pathin is at the end of a function
+                # and the next instrution address is that +4
+                # Is this valid or do I need to calculate?
+                resolvedAddr = self.LookupAddress(patch[0]) - (self.codeAddr + patch[1] + 4)
             else:
                 raise RuntimeError("Invalid patchin information")
             self.resolvedCode = self.resolvedCode[:patch[1]] + ulongToString(resolvedAddr) \
@@ -57,9 +67,8 @@ class CpToMemory:
             
         assert len(self.resolvedCode) == len(self.cp.Code)
         
-        self.memAccess.LoadExecutableMemoryString(codeAddr,self.resolvedCode)
-        self.memAccess.LoadExecutableMemoryString(dataAddr,self.cp.Data)
+        self.memAccess.LoadExecutableMemoryString(self.codeAddr,self.resolvedCode)
+        self.memAccess.LoadExecutableMemoryString(self.dataAddr,self.cp.Data)
 
-        for proc in self.cp.CodeSymbols:
-            glb[proc[0]] = self.memAccess.BindFunctionAddress(proc[1] + codeAddr)
+        
             
