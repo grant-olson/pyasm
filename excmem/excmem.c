@@ -1,7 +1,8 @@
 /* Copyright 2004-2005 Grant T. Olson. See license.txt for terms.*/
 
 /*
-This provides a basic interface to allocate executable memory.  This will become
+This provides a basic interface to allocate executable memory.  
+This will become 
 more important as W^X type protection gets used more and more.  To be honest, I'm
 not sure if this is even matters at this point.  It seems like (in windows at least)
 the execute permission has no effect, only removing the write permission causes a fault.
@@ -169,8 +170,9 @@ excmem_GetSymbolAddress(PyObject *self, PyObject *args)
 static PyObject *
 excmem_GetSymbolAddress(PyObject *self, PyObject *args)
 {
-	Py_INCREF(Py_None);
-	return Py_None;
+	PyErr_SetString(ExcmemError,"Please use win32api calls to get "
+                    "symbol addresses on windows.");
+	return NULL;
 }
 
 #endif
