@@ -13,7 +13,7 @@ from test_x86tokenizer import *
 from test_object_creation import *
 from test_bugs import *
 from test_variables import *
-
+from test_winmem import *
 
 if __name__ == "__main__":
     unittest.main()
