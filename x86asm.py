@@ -342,6 +342,8 @@ class assembler:
     #
     def pass1(self):
         newInsts = []
+        patchIns = []
+        symbols = []
         currentAddress = self.StartAddress
         for i in self.Instructions:
             if type(i) == types.TupleType: # and instruction to lookup
@@ -350,6 +352,7 @@ class assembler:
                 inst.Address = currentAddress
                 currentAddress += inst.GetInstructionSize()
                 newInsts.append(inst)
+                patchIns.extend(inst.GetSymbolPatchins())
             else: # a label
                 i.Address = currentAddress
                 newInsts.append(i)
@@ -359,6 +362,9 @@ class assembler:
                 print i.OpText()
             else:
                 print "%08X: %s" % (i.Address, i.Name)
+        print "PATCHINS: "
+        for patch in patchIns:
+            print "%s => 0x%08X" % patch
             
     def Compile(self):
         self.pass1()

@@ -329,7 +329,37 @@ class instructionInstance:
         self.ModRM = None
         self.SIB = None
         self.Displacement = None
+        self.DisplacementSymbol = None
         self.Immediate = None
+        self.ImmediateSymbol = None
+
+    def GetSymbolPatchins(self,modrm=None):
+        "locations of symbols if they exist"
+        retVal = []
+        size = len(self.Instruction.Opcode)
+        if self.Instruction.HasModRM:
+            size += 1
+            if self.ModRM:
+                mrm = self.ModRM
+            elif modrm == None:
+                raise OpcodeNeedsModRM()
+            else:
+                mrm = ModRM(modrm)
+            if mrm.HasSIB():
+                size += 1
+            if mrm.GetDisplacementSize():
+                if self.DisplacementSymbol:
+                    retVal.append( (self.DisplacementSymbol,self.Address + size) )
+                size += mrm.GetDisplacementSize()
+        if self.Instruction.HasDisplacement:
+            if self.DisplacementSymbol:
+                    retVal.append( (self.DisplacementSymbol,self.Address + size) )
+            size += self.Instruction.DisplacementSize
+        if self.Instruction.HasImmediate:
+            if self.ImmediateSymbol:
+                retVal.append( (self.ImmediateSymbol, self.Address + size))
+            size += self.Instruction.ImmediateSize
+        return retVal
 
     def GetSuffixSize(self,modrm=None):
         "Size for everything after Opcode"
@@ -490,12 +520,14 @@ class instructionInstance:
                         self.Immediate = eval(firstTok[1])
                     else:
                         self.Immediate = 0x0
+                        self.ImmediateSymbol = firstTok[1]
                 elif firstDef[1] in ('rel32','rel16','rel8'):
                     # Do we need to do the math here (convert absolute val to relative?)
                     if firstTok[0] == NUMBER:
                         self.Displacement = eval(firstTok[1])
                     else:
                         self.Displacement = 0x0
+                        self.DisplacementSymbol = firstTok[1]
                 else:
                     #there will really be more cases here.
                     raise x86instError("Invalid Operand type '%s'" % firstDef[1])
