@@ -1,3 +1,6 @@
+# Copyright 2004-2005 Grant T. Olson.
+# See license.txt for terms.
+
 import unittest
 from pyasm.x86asm import *
 

@@ -1,3 +1,6 @@
+# Copyright 2004-2005 Grant T. Olson.
+# See license.txt for terms.
+
 """
 Make both html and pdf output for reStructuredText docs
 """

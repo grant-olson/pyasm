@@ -1,3 +1,6 @@
+# Copyright 2004-2005 Grant T. Olson.
+# See license.txt for terms.
+
 """
 Windows specific constants for coff files grabbed from from winnt.h
 appox. line # 6064

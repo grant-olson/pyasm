@@ -1,6 +1,9 @@
 #include <python.h>
 #include <windows.h>
 
+/* Copyright 2004-2005 Grant T. Olson. See license.txt for terms.*/
+
+
 static PyObject *WinmemError;
 PyMethodDef WinmemMethods[];
 

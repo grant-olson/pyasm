@@ -1,3 +1,6 @@
+# Copyright 2004-2005 Grant T. Olson.
+# See license.txt for terms.
+
 from x86inst import RELATIVE,DIRECT
 from x86PackUnpack import ulongToString
 

@@ -1,3 +1,6 @@
+# Copyright 2004-2005 Grant T. Olson.
+# See license.txt for terms.
+
 """
 Test the whole chain to a .obj file for a simple 'hello world'
 assembly app.
