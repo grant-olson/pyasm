@@ -42,14 +42,14 @@ def possibleImmediate(*toks):
                 yield yldVal
 
 def possibleRelative(*toks):
-    immediateVals = ['rel32','rel16','rel8']
+    relativeVals = ['rel32','rel16','rel8']
     first,rest = toks[0],toks[1:]
     if not rest:
-        for val in immediateVals:
+        for val in relativeVals:
             yield [(OPERAND,val)]
     else:
         possibleLookup = getProperLookup(*rest)
-        for val in immediateVals:
+        for val in relativeVals:
             for restMatches in possibleLookup(*rest):
                 yldVal = [(OPERAND,val)]
                 yldVal.extend(restMatches)
@@ -76,12 +76,33 @@ def possibleRegister(*toks):
                 yldVal.extend(restMatches)
                 yield yldVal
 
+def possibleIndirect(*toks):
+    """
+    Registers may be hardcoded for superfast lookups, or an r or r/m value.
+    We could probably optimize better with a better understanding of the environment.
+        i.e. it doesn't make sense to move an r/m8 into an r32
+    """    
+    registerVals = [(OPERAND,'r/m32'),(OPERAND,'r/m16'),(OPERAND,'r/m8')]
+    first,rest = toks[0],toks[1:]
+    while rest[0] != (RBRACKET, ']'):
+        rest = rest[1:]
+    rest = rest[1:]
+    if not rest:
+        for val in registerVals:
+            yield [val]
+    else:
+        possibleLookup = getProperLookup(*rest)
+        for val in registerVals:
+            for restMatches in possibleLookup(*rest):
+                yldVal = [val]
+                yldVal.extend(restMatches)
+                yield yldVal
+
 possibleLookups = {
     REGISTER:possibleRegister,
     OPCODE:possibleDefault,
     COMMA:possibleDefault,
-    LBRACKET:possibleDefault,
-    RBRACKET:possibleDefault, # should really never get here
+    LBRACKET:possibleIndirect,
     NUMBER:possibleImmediate,
     SYMBOL:possibleDefault,}
 
