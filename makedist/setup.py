@@ -9,6 +9,6 @@ setup(name='pyasm',
       description='dynamic x86 assembler for python',
       author='Grant Olson',
       author_email='olsongt@verizon.net',
-      packages=['pyasm','pyasm.test','pyasm.examples'],
+      packages=['pyasm','pyasm.test'],#,'pyasm.examples'],
       ext_modules=[excmem]
       )
