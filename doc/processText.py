@@ -21,11 +21,10 @@ for f in glob("*.txt"):
         runCmd("rst2latex.py %s pdf\\%s.tex" % (f, partOfName))
         runCmd("latex -output-directory pdf pdf/%s.tex" % partOfName)
 
+        # don't use ugly Computer Modern font
         tmpFile = file("pdf/%s.tex" % partOfName).read()
-        print tmpFile
         tmpFile = tmpFile.replace("%% generator Docutils: ",
                                   "\usepackage{times}\n%% generator Docutils: ")
-        print tmpFile
         f = file("pdf/%s.tex","w")
         f.write(tmpFile)
         f.close()
