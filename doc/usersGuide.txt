@@ -5,6 +5,9 @@ PyASM User's Guide V. 0.2
 by Grant Olson <olsongt at verizon.net>
 +++++++++++++++++++++++++++++++++++++++
 
+.. contents::
+
+
 ============
 Introduction
 ============
@@ -264,7 +267,7 @@ simple Windows interface called WinDBG.  You'll really want to download this if
 you're getting serious about assembly debugging.  Actual usage is beyond the
 scope of this document, but read up on setting up a symbol server.
 
-..tip:: 
+.. TIP:: 
   After installing, you may want to register WinDBG as the default
   debugger by cd'ing to the program directory and issuing 'windbg -I'  This will
   cause WinDBG to spawn automatically when any program crashes or executes an INT
@@ -304,5 +307,14 @@ For standard instructions, you should just be able to add the appropriate text
 to x86inst.py and creating a test in test_instructions.py.  SIMD and FPU
 operations will probably require some additional hacking.
 
+---------------------------------
+ELF serialization/deserialization
+---------------------------------
+
+There is currently code that converts windows COFF objects to a python-based
+object model and vice versa.  This allows you to create standard object files
+for traditional linking.  An equivilent for ELF files would allow you to do the
+same thing in Linux.  Refer to the coff*.py files to see how this format was
+implemented.
 
   
