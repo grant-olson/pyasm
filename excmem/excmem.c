@@ -2,19 +2,21 @@
 
 /*
 This provides a basic interface to allocate executable memory.  
-This will become 
-more important as W^X type protection gets used more and more.  To be honest, I'm
-not sure if this is even matters at this point.  It seems like (in windows at least)
-the execute permission has no effect, only removing the write permission causes a fault.
+This will become more important as W^X type protection gets 
+used more and more.  To be honest, I'm not sure if this is 
+even matters at this point.  It seems like (in windows at 
+least) the execute permission has no effect, only removing the 
+write permission causes a fault.
 
-Right now this is pretty much a stub, it should eventually work more like a real 
-allocator with a linked list of pages of memory that are allocated on an as-needed basis.
+Right now this is pretty much a stub, it should eventually 
+work more like a real allocator with a linked list of pages 
+of memory that are allocated on an as-needed basis.
 
-Also need to decide how much memory we will want to free and how that should be
-implemented.
+Also need to decide how much memory we will want to free and
+how that should be implemented.
 
-And I need to decide if it's important to make sure that we don't use WRITE and EXECUTE
-permissions at the same time.
+And I need to decide if it's important to make sure that we
+don't use WRITE and EXECUTE permissions at the same time.
 */
 
 #include <Python.h>
@@ -35,7 +37,6 @@ permissions at the same time.
 
 
 static PyObject *ExcmemError;
-static PyMethodDef ExcmemMethods[];
 
 void *startExcMemory;
 void *posExcMemory;
@@ -99,44 +100,6 @@ excmem_BindFunctionAddress(PyObject *self, PyObject *args)
 	return Py_BuildValue("O",func);
 }
 
-PyMODINIT_FUNC
-initexcmem(void)
-{
-	
-	PyObject *m;
-	int ret;
-	char *errbuf[NL_TEXTMAX + 256];
-
-    m = Py_InitModule("excmem", ExcmemMethods);
-
-    ExcmemError = PyErr_NewException("excmem.ExcmemError", NULL, NULL);
-    Py_INCREF(ExcmemError);
-	PyModule_AddObject(m, "ExcmemError", ExcmemError);
-
-	/* Allocate executable memory */
-#ifdef MS_WINDOWS
-	startExcMemory = VirtualAlloc(NULL,4096,MEM_COMMIT,PAGE_EXECUTE_READWRITE);
-#else
-	startExcMemory = malloc(4096);
-	if (!startExcMemory) {
-		PyErr_SetString(PyExc_MemoryError,"Couldn't allocate memory!");
-		return;
-	}
-
-	ret = mprotect(startExcMemory,4096,PROT_READ|PROT_WRITE|PROT_EXEC);
-
-	if (ret) {
-		PyErr_SetString(PyExc_MemoryError,"Error protecting memory");
-		return;
-	}
-#endif
-
-
-	posExcMemory = startExcMemory;
-
-	/* End allocation of executable memory */
-}
-
 #ifndef MS_WINDOWS
 
 static PyObject *
@@ -197,3 +160,39 @@ static PyMethodDef ExcmemMethods[] = {
 
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
+
+PyMODINIT_FUNC
+initexcmem(void)
+{
+	
+	PyObject *m;
+
+    m = Py_InitModule("excmem", ExcmemMethods);
+
+    ExcmemError = PyErr_NewException("excmem.ExcmemError", NULL, NULL);
+    Py_INCREF(ExcmemError);
+	PyModule_AddObject(m, "ExcmemError", ExcmemError);
+
+	/* Allocate executable memory */
+#ifdef MS_WINDOWS
+	startExcMemory = VirtualAlloc(NULL,4096,MEM_COMMIT,PAGE_EXECUTE_READWRITE);
+#else
+	startExcMemory = malloc(4096);
+	if (!startExcMemory) {
+		PyErr_SetString(PyExc_MemoryError,"Couldn't allocate memory!");
+		return;
+	}
+
+	ret = mprotect(startExcMemory,4096,PROT_READ|PROT_WRITE|PROT_EXEC);
+
+	if (ret) {
+		PyErr_SetString(PyExc_MemoryError,"Error protecting memory");
+		return;
+	}
+#endif
+
+
+	posExcMemory = startExcMemory;
+
+	/* End allocation of executable memory */
+}
