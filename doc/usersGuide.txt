@@ -9,15 +9,22 @@ by Grant Olson <olsongt at verizon.net>
 Introduction
 ============
 
-PyASM is a full-featured dynamic assembler written entirely in Python.  By dynamic, I mean that it can be used to generate and execute machine code in python at runtime without requiring the generation of object files and linkage.  It essentially allow 'inline' assembly in python modules on x86 platforms.
+PyASM is a full-featured dynamic assembler written entirely in Python.  By
+dynamic, I mean that it can be used to generate and execute machine code in
+python at runtime without requiring the generation of object files and linkage.
+It essentially allow 'inline' assembly in python modules on x86 platforms.
 
-PyASM can also generate object files (for windows) like a traditional standalone assembler, although you're probably better off using one of the many freely available assemblers if this is you primary goal.
+PyASM can also generate object files (for windows) like a traditional
+standalone assembler, although you're probably better off using one of the many
+freely available assemblers if this is you primary goal.
 
 ------------
 Installation
 ------------
 
-PyASM requires python 2.4 or later.  To the best of my knowledge, the only 2.4 specific feature I've used is `from x import (a,b,c)`, but I need to draw a line in the sand somewhere as far as the installations I'll test and support.
+PyASM requires python 2.4 or later.  To the best of my knowledge, the only 2.4
+specific feature I've used is `from x import (a,b,c)`, but I need to draw a
+line in the sand somewhere as far as the installations I'll test and support.
 
 Linux Install:
 
@@ -84,8 +91,11 @@ A brief description of what is happening durring the pyasm call:
         a) Load PyNone into the EAX register, which will become the return value.
         b) Add one to the reference count
 
-  6. The !ENDPROC directive ends the procedure and creates function cleanup code.
-This creates a procedure called hello_world that would have the C signature of `PyObject* hello_world(PyObject* self, PyObject* args)`.  The procedure loads hello_str onto the stack, calls the python interpreters PySys_WriteStdout function, 
+  6. The !ENDPROC directive ends the procedure and creates function cleanup
+  code.  This creates a procedure called hello_world that would have the C
+  signature of `PyObject* hello_world(PyObject* self, PyObject* args)`.  The
+  procedure loads hello_str onto the stack, calls the python interpreters
+  PySys_WriteStdout function, 
 
   7. Calling hello_world() executes the newly created function.
 
@@ -98,7 +108,13 @@ Everyday usage
 Assembler Syntax
 ----------------
 
-Like most assemblers, the command-line assembler contains a very simple parser.  There two basic statements that can be used.  An *instruction statement* and an *assembler directive*.  *Assembler directives* contain information that makes your assembly a little easier to read than raw assembly code, such as the begining and ending of function; declaration of parameters, variables, constants and data; and other stuff.  *Instruction Statements* consist of real assembly instructions such as `MOV [EAX+4],value`
+Like most assemblers, the command-line assembler contains a very simple parser.
+There two basic statements that can be used.  An *instruction statement* and an
+*assembler directive*.  *Assembler directives* contain information that makes
+your assembly a little easier to read than raw assembly code, such as the
+begining and ending of function; declaration of parameters, variables,
+constants and data; and other stuff.  *Instruction Statements* consist of real
+assembly instructions such as `MOV [EAX+4],value`
 
 Additional notes specific to this assembler are as follows:
 
@@ -107,12 +123,17 @@ Additional notes specific to this assembler are as follows:
 Instruction Statements
 ----------------------
 
-Instruction statements are reasonably straightforward if you know x86 assembly language.  Instruction mneumonics and register names are in all capitals.
+Instruction statements are reasonably straightforward if you know x86 assembly
+language.  Instruction mneumonics and register names are in all capitals.
 
 Assembler Directives
 --------------------
 
-Assembler directives begin with an exclamation mark, followed by the directive itself, and followed by any applicable parameters.  Keep in mind that these directives are provided for the programmer's convienence.  Anything that is done via a directive could be translated into raw assembly, it's just not as readable.
+Assembler directives begin with an exclamation mark, followed by the directive
+itself, and followed by any applicable parameters.  Keep in mind that these
+directives are provided for the programmer's convienence.  Anything that is
+done via a directive could be translated into raw assembly, it's just not as
+readable.
 
 +-----------------------+----------------+----------------------------------------+
 |                       |                |                                        |
@@ -188,13 +209,17 @@ Assembler directives begin with an exclamation mark, followed by the directive i
 Typical Usage
 -------------
 
-Typically, usage is as simple as the hello world example listed above.  Import the pyasm function from the pyasm package and call it.  globals blah blah blah.
+Typically, usage is as simple as the hello world example listed above.  Import
+the pyasm function from the pyasm package and call it.  globals blah blah blah.
 
 --------------------
 Assembly via the API
 --------------------
 
-calling pyasm is fine if you're just trying to inline some assembly functions, but if you're trying to dynamically generate assembly (such as writing a python compiler) you're better off accessing the api directly.  This involves a few steps:
+calling pyasm is fine if you're just trying to inline some assembly functions,
+but if you're trying to dynamically generate assembly (such as writing a python
+compiler) you're better off accessing the api directly.  This involves a few
+steps:
 
   1) import the assembler class from x86 asm and instantiate.
   2) Add instructions either as strings that need to be preprocessed or via the api.
@@ -207,10 +232,77 @@ Command-line assembler
 
 **NOT IMPLEMENTED YET**
 
-If you really want to, a command-line asembler is available for usage.  Usage is straightforward::
+If you really want to, a command-line asembler is available for usage.  Usage
+is straightforward::
 
     python pyassemble.py asmfile.asm
 
 This will generate an object file asmfile.o that can be used by your linker.
 
+==============
+Debugging Tips
+==============
 
+If you write assembly, chances are that you are going to crash your app at one
+point or another.  
+
+---------------
+Linux Debuggers
+---------------
+
+On Linux, you obviously have gdb.
+
+-----------------
+Windows debuggers
+-----------------
+
+Contrary to popular belief, there is a buildin command-line debugger on Windows
+NT/2000/XP called ntsd.exe that can be used in a bind.  If you're doing any
+serious work though, do yourself a favor and download the 18MB "Debugging Tools
+for Windows."  It includes an updated version of ntsd.exe and a version with a
+simple Windows interface called WinDBG.  You'll really want to download this if
+you're getting serious about assembly debugging.  Actual usage is beyond the
+scope of this document, but read up on setting up a symbol server.
+
+..tip:: 
+  After installing, you may want to register WinDBG as the default
+  debugger by cd'ing to the program directory and issuing 'windbg -I'  This will
+  cause WinDBG to spawn automatically when any program crashes or executes an INT
+  3 instruction.  It also has the added benefit of making friends and co-workers
+  think that you're a much more hardcore programmer than you really are.  The
+  jury is still out as to whether this impresses the ladies or not.
+  
+And yes, there is the Visual Studio .NET debugger.  This is a great debugger
+when you're debugging C or VB code in an existing project.  But it is
+designed to work as part of an IDE.  It gets a little wierd when debugging
+raw assembly or compiled code without the source floating around.  As ugly as
+WinDBG's gui looks like by todays standards, it is a lot more convienent in
+these cases.
+
+------------------------------------
+Source output - *not implemented yet
+------------------------------------
+
+I plan to provide a hook via the logging module so you can obtain disassembly
+of the source at runtime.
+
+=======================
+Feel like contributing?
+=======================
+
+Any and all patches will be considered.  If you're planning on implenting
+anything serious you may want to run it by me so you don't end up wasting your
+time.  There is some low-hanging fruit  out there though.
+
+-----------------------
+Adding x86 instructions
+-----------------------
+
+I haven't added all of the x86 instructions yet.  Most of it involves cutting
+and pasting from the IA32 Intel Software Architecture Manual Volumes 2 and 3.
+For standard instructions, you should just be able to add the appropriate text
+to x86inst.py and creating a test in test_instructions.py.  SIMD and FPU
+operations will probably require some additional hacking.
+
+
+  
