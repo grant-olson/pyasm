@@ -12,10 +12,12 @@ not today.
 
 import struct
 from pickle import decode_long, encode_long
-from x86tokenizer import tokenizeInstDef,REGISTER,OPCODE,COMMA,OPERAND
+from x86tokenizer import (tokenizeInstDef,REGISTER,OPCODE,COMMA,OPERAND,
+                          LBRACKET, RBRACKET,NUMBER,SYMBOL)
 
 class OpcodeTooShort(Exception):pass
 class OpcodeNeedsModRM(Exception):pass # for /d info and SIB calculation
+class x86instError(Exception):pass
 
 opcodeFlags = ['/0','/1','/2','/3','/4','/5','/6','/7',
                '/r',
@@ -412,7 +414,57 @@ class instructionInstance:
         if size >= 1:
             retVal += "%02X " % (data % 0xFF)
         return retVal
-        
+
+    def LoadConcreteValues(self, toks):
+        print "%s => %s" % (self.Instruction.InstructionString, toks)
+        tmpModRM = ModRM()
+        firstDef, restDef = (self.Instruction.InstructionDef[0],self.Instruction.InstructionDef[1:])
+        firstTok, restTok = toks[0],toks[1:]
+        while 1:
+            print "TOK COMPARES: %s => %s" % (firstDef, firstTok)
+            if firstDef[0] in (OPCODE, COMMA, REGISTER):
+                if firstDef[0] != firstTok[0]:
+                    raise x86instError("These should be equal '%s' '%s'" % \
+                                       (firstDef, firstTok))
+            elif firstDef[0] == OPERAND:
+                if firstDef[1] in ('r/m32','r/m16','r/m8'):
+                    #figure out r/m val
+                    if firstTok[0] == REGISTER:
+                        #figure out r val
+                        registerName = firstTok[1]
+                        registerType = firstDef[1][0] + firstDef[1][3:]
+                        registerVal = regOpcode[registerType].index(registerName)
+                        if registerVal < 0:
+                            raise x86instError("Couldn't resolve register '%s'" % registerName)
+                        else:
+                            ModRM.RegOp = registerVal
+                    elif firstTok[0] == LBRACKET:
+                        while firstTok[0] != RBRACKET:
+                            firstTok, restTok = restTok[0],restTok[1:]
+                    else:
+                        raise x86instError("Invalid r/m token '%s'" % firstTok[0])
+                            
+                elif firstDef[1] in ('r32','r16','r8'):
+                    #figure out r val
+                    registerName = firstTok[1]
+                    registerVal = regOpcode[firstDef[1]].index(registerName)
+                    if registerVal < 0:
+                        raise x86instError("Couldn't resolve register '%s'" % registerName)
+                    else:
+                        ModRM.RegOp = registerVal
+                elif firstDef[1] in ('imm32','imm16','imm8'):
+                    pass
+                else:
+                    #there will really be more cases here.
+                    raise x86instError("Invalid Operand type '%s'" % firstDef[1])
+            else:
+                raise x86instError("Invalid token" , firstDef)
+                                       
+            if not restDef:
+                break
+            firstDef, restDef = restDef[0],restDef[1:]
+            firstTok, restTok = restTok[0],restTok[1:]
+            
     def OpText(self):
         size = 0
         retVal = ''

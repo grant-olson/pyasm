@@ -12,7 +12,9 @@ from x86tokenizer import (tokenizeInst,
                           REGISTER,OPCODE,COMMA,OPERAND,
                           LBRACKET,RBRACKET,NUMBER,SYMBOL)
 
-from x86inst import mnemonicDict, rb, rw, rd
+from x86inst import mnemonicDict, rb, rw, rd, instructionInstance
+
+import types
 
 class x86asmError(Exception): pass
 
@@ -131,9 +133,8 @@ possibleLookups = {
 def getProperLookup(*toks):
     return possibleLookups[toks[0][0]]
 
-def findBestMatch(s):
+def findBestMatchTokens(toks):
     retVal = None
-    toks = tokenizeInst(s)
     for x in possibleDefault(*toks):
         y = tuple(x)
         if mnemonicDict.has_key(y):
@@ -142,6 +143,13 @@ def findBestMatch(s):
     if retVal:
         return retVal
     else:
+        raise x86asmError("Unable to find match for " + `toks`)
+    
+def findBestMatch(s):
+    toks = tokenizeInst(s)
+    try:
+        return findBestMatchTokens(toks)
+    except x86asmError:
         raise x86asmError("Unable to find match for '%s'" % s)
 
 def printBestMatch(s):
@@ -243,12 +251,17 @@ class assembler:
         self.Data = []
         self.Labels = {}
         self.CurrentProcedure = None
+        self.StartAddress = 0x04000000
 
     def registerLabel(self,lbl):
         if self.Labels.has_key(lbl.Name):
             raise x86asmError("Duplicate Label Registration [%s]" % lbl.Name)
         self.Labels[lbl.Name] = lbl
-        
+        self.Instructions.append(lbl)
+
+    #
+    # Write assmebly code
+    #
     def AddInstruction(self,inst):
         instToks = tokenizeInst(inst)
         instToksMinusLocals = ()
@@ -264,7 +277,6 @@ class assembler:
                         instToksMinusLocals += (tok,)
         else: # no locals, don't try to substitute
             instToksMinusLocals = instToks
-        print(instToksMinusLocals)
         self.Instructions.append(instToksMinusLocals)
 
     def AI(self,inst):
@@ -319,3 +331,47 @@ class assembler:
     def EP(self):
         self.EndProc()
             
+    #
+    # end write assembly code
+    #
+
+    #
+    # start actual compilation code
+    #
+    def pass1(self):
+        newInsts = []
+        currentAddress = self.StartAddress
+        for i in self.Instructions:
+            if type(i) == types.TupleType: # and instruction to lookup
+                inst = findBestMatchTokens(i).GetInstance()
+                inst.LoadConcreteValues(i)
+                inst.Address = currentAddress
+                #currentAddress += inst.GetInstructionSize()
+                newInsts.append(inst)
+            else: # a label
+                i.Address = currentAddress
+                newInsts.append(i)
+        for i in newInsts:
+            print type(i)
+            if isinstance(i, instructionInstance):
+                print "%08X: %s " % (i.Address, i.Instruction.InstructionString) ,
+            else:
+                print "%08X: %s" % (i.Address, i.Name)
+            
+    def Compile(self):
+        self.pass1()
+
+if __name__ == '__main__':
+    a = assembler()
+    a.AP("foo")
+    a.AA("bar")
+    a.AA("baz")
+    a.AddLocal("x")
+    a.AddLocal("y")
+    a.AI("MOV EAX,bar")
+    a.AI("MOV EAX,baz")
+    a.AI("MOV x,EAX")
+    a.AI("MOV y,12")
+    a.EP()
+
+    a.Compile()    
