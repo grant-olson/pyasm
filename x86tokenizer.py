@@ -125,25 +125,4 @@ def tokenizeInstDef(s):
 def tokenizeInst(s):
     return tokenizeString(s, instructionRe)
 
-if __name__ == '__main__':
-    # move to unit test
-    #
-    re.compile(opcodeRe)
-    re.compile(operandRe)
-    re.compile(commaRe)
-    re.compile(defRegRe)
-    re.compile(basicRegisterRe)
-    re.compile(lbracketRe)
-    re.compile(rbracketRe)
-    re.compile(numberRe)
-    re.compile(symbolRe)
-    re.compile(instRegRe)
-
-    print tokenizeInst('PUSH hw_string')
-    print tokenizeInst('CALL _printf')
-    print tokenizeInst('ADD ESP,4')
-    print tokenizeInst('XOR EAX,EAX')
-    print tokenizeInst('MOV [EAX],12')
-    print tokenizeInst('MOV [EAX+0xCC],12')
-    print tokenizeInst('MOV [EAX+12],12')
-    print tokenizeInst('RET')    
+  

@@ -26,6 +26,7 @@ opcodeFlags = ['/0','/1','/2','/3','/4','/5','/6','/7',
                ]
 
 instModRM = ['r/m8','r/m16','r/m32','r8','r16','r32']
+
 immediate = ['imm8','imm16','imm32']
 displacement = ['rel8','rel16','rel32']
 
@@ -449,6 +450,7 @@ class instructionInstance:
             elif typ == REGISTER:
                 operandStr += val
             elif typ == OPERAND:
+                #TODO: Cleanup here, remove strings in if statements
                 if val in immediate:
                     operandStr += "%X" % self.Immediate
                 elif val in displacement:
