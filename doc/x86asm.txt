@@ -1,0 +1,50 @@
+x86asm.py
+=========
+
+This module contains the necessary code to assmble code into machine language.
+
+Symbols
+-------
+
+There are a variety of symbols that can be declared in user's assembly code.  This is an attempt to list them out so that I can figure out how to implement them.
+
+Symbols ultimately get converted to immediate values, relative values, or r/m values for indirect reference.
+
+.. warning:
+    I need to get a better idea of how other assemblers (MASM, TASM) implement
+    the look-n-feel for these labels in code.
+
+symbol types
+~~~~~~~~~~~~
+
+global_label
+  A standard label just marks a location so that it can be referenced 
+  symbolically.  We may not need these if proc_labels cover everything.
+
+proc_label
+  This is a label, but also indicates that we are at the start of a procedure
+  that will be called via call.  It will trigger the generation of additional
+  code to deal with parameters and local variables.
+
+local_label
+  A label that is only valid for the scope of a procedure.  Used for branches
+  and what not.  It's probably too much for the users to insist that they use
+  global labels for this, although they're not strictly necessary.
+
+param_variable
+  A variable that is passed to a function via the stack at call time.  Created
+  by the calling code.
+
+.. warning:
+    How are these handled via standard calling conventions in Windows?
+  
+local_variable
+  A local variable for a procedure.  Unlike param_variables, it is created
+  by the callee.  It is maintained on the call stack relative to the EBP
+  pointer.
+
+heap_variable
+  A varible that gets created on the heap at compile time.  Scope is global.
+  May need to add additional typing information.
+
+  
