@@ -1,49 +1,50 @@
 #include <python.h>
 #include <windows.h>
 
-static PyObject *WinloadError;
-PyMethodDef WinloadMethods[];
+static PyObject *WinmemError;
+PyMethodDef WinmemMethods[];
 
 LPBYTE startExcMemory;
 LPBYTE posExcMemory;
 
 
 static PyObject *
-spam_system(PyObject *self, PyObject *args)
+winmem_LoadExecutableMemoryString(PyObject *self, PyObject *args)
 {
-    const char *command;
-    int sts;
-
-    if (!PyArg_ParseTuple(args, "s", &command))
-        return NULL;
-    sts = system(command);
-    return Py_BuildValue("i", sts);
-}
-
-static PyObject *
-winload_LoadExecutableMemory(PyObject *self, PyObject *args)
-{
-	int len, ok;
+	int len,dest,ok;
 	const char *memString;
 
-	ok = PyArg_ParseTuple(args, "s", &memString);
+	ok = PyArg_ParseTuple(args, "is", &dest, &memString);
 	len = strlen(memString);
 
-	memcpy(posExcMemory,memString,len);
-	posExcMemory = posExcMemory + len;
+	memcpy((void*)dest,memString,len);
 
 	Py_INCREF(Py_None);
 	return Py_None;
 }
 
 static PyObject *
-winload_GetCurrentPosition(PyObject *self, PyObject *args)
+winmem_AllocateExecutableMemory(PyObject *self, PyObject *args)
+{
+	int requestedSize, pointerToMemory;
+
+	if (!PyArg_ParseTuple(args, "i", &requestedSize))
+        return NULL;
+
+	pointerToMemory = (int)posExcMemory;
+	posExcMemory = posExcMemory + requestedSize;
+
+	return Py_BuildValue("i",pointerToMemory);
+}
+
+static PyObject *
+winmem_GetCurrentExecutablePosition(PyObject *self, PyObject *args)
 {
 	return Py_BuildValue("i",(int)posExcMemory);
 }
 
 PyMODINIT_FUNC
-initwinload(void)
+initwinmem(void)
 {
 	PyObject *m;
 
@@ -53,20 +54,22 @@ initwinload(void)
 
 	/* End allocation of executable memory */
 
-    m = Py_InitModule("winload", WinloadMethods);
+    m = Py_InitModule("winmem", WinmemMethods);
 
-    WinloadError = PyErr_NewException("winload.winloadException", NULL, NULL);
-    Py_INCREF(WinloadError);
-    PyModule_AddObject(m, "error", WinloadError);
+    WinmemError = PyErr_NewException("winmem.WinmemException", NULL, NULL);
+    Py_INCREF(WinmemError);
+    PyModule_AddObject(m, "error", WinmemError);
 }
 
-static PyMethodDef WinloadMethods[] = {
+static PyMethodDef WinmemMethods[] = {
 
-    {"system",  spam_system, METH_VARARGS,
-     "Execute a shell command."},
-	{"LoadExecutableMemory",winload_LoadExecutableMemory, METH_VARARGS,
+	{"AllocateExecutableMemory",winmem_AllocateExecutableMemory, METH_VARARGS,
+	"Allocate a chunk of memory flagged with execute privleges and return a pointer."},
+
+	{"LoadExecutableMemoryString",winmem_LoadExecutableMemoryString, METH_VARARGS,
 	"Load a string into preallocated memory with execute permissions"},
-	{"GetCurrentPosition",winload_GetCurrentPosition, METH_VARARGS,
+
+	{"GetCurrentExecutablePosition",winmem_GetCurrentExecutablePosition, METH_VARARGS,
 	"Get the current memory location so we can determine patchins."},
 
 
