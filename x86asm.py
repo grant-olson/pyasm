@@ -157,7 +157,14 @@ class label:
     def __init__(self, name):
         self.Name = name
         self.Address = 0x0
-        
+
+class labelDict(dict):
+    def __setitem__(self,key,val):
+        if self.has_key(key):
+            raise x86asmError("Duplicate Label Declaration '%s'" % key)
+        else:
+            dict.__setitem__(self,key,val)
+
 class data:
     def __init__(self, dat):
         self.Data = dat
@@ -167,8 +174,36 @@ class procedure:
     def __init__(self,name):
         self.Name = name
         self.Args = []
+        self.ArgOffset = 4
         self.Locals = []
+        self.LocalOffset = 4
+        
+    def AddArg(self,name,bytes=4):
+        self.Args.append( (name, self.ArgOffset, bytes) )
+        self.ArgOffset += bytes
 
+    def AddLocal(self,name,bytes=4):
+        self.Locals.append( (name, self.LocalOffset, bytes) )
+        self.LocalOffset += bytes
+
+    def LookupArg(self,name):
+        for x in self.Args:
+            if x[0] == name:
+                return ( (LBRACKET, '['), (REGISTER,'EBP'),(NUMBER, -x[1]), (RBRACKET,']') )
+        return None
+
+    def LookupLocal(self,name):
+        for x in self.Locals:
+            if x[0] == name:
+                return ( (LBRACKET, '['), (REGISTER,'EBP'),(NUMBER, x[1]), (RBRACKET,']') )
+        return None
+       
+    def LookupVar(self, name):
+        retVal = self.LookupArg(name)
+        if retVal is None:
+            retVal = self.LookupLocal(name)
+        return retVal
+    
 class assembler:
     def __init__(self):
         self.Instructions = []
@@ -182,8 +217,19 @@ class assembler:
         self.Labels[lbl.Name] = lbl
         
     def AddInstruction(self,inst):
-        printBestMatch(inst)
-        self.Instructions.append(inst)
+        instToks = tokenizeInst(inst)
+        instToksMinusLocals = ()
+        for tok in instToks:
+            if tok[0] != SYMBOL: # do nothing
+                instToksMinusLocals += ( tok,)
+            else: #look for local match
+                local = self.CurrentProcedure.LookupVar(tok[1])
+                if local: #found match
+                    instToksMinusLocals += local
+                else: # defer resolution to second pass
+                    instToksMinusLocals += (tok,)
+        print(instToksMinusLocals)
+        self.Instructions.append(instToksMinusLocals)
 
     def AI(self,inst):
         self.AddInstruction(inst)
@@ -214,29 +260,46 @@ class assembler:
         self.AddProcedure(name)
 
     def AddArgument(self,name):
-        arg = label(name)
-        self.CurrentProcedure.Args.append(arg)
+        self.CurrentProcedure.AddArg(name)
 
     def AA(self,name):
-        self.AddArgument(self,name)
+        self.AddArgument(name)
 
     def AddLocal(self,name):
-        local = label(name)
-        self.CurrentProcedure.Locals.append(arg)
+        self.CurrentProcedure.AddLocal(name)
+
+import unittest
+
+class assemblerTests(unittest.TestCase):
+    def test_basic_assembler(self):
+        a = assembler()
+        a.AD('hw_string','Hello, World!\n\0')
+        a.AP('_main')
+        a.AI('PUSH hw_string')
+        a.AI('CALL _printf')
+        a.AI('ADD ESP,4')
+        a.AI('XOR EAX,EAX')
+        a.AI('RET')
+        
+        a.AP('_main2')
+        a.AI('PUSH hw_string')
+        a.AI('CALL _printf')
+        a.AI('ADD ESP,4')
+        a.AI('XOR EAX,EAX')
+        a.AI('RET')
+
+    def test_proc_locals(self):
+        a = assembler()
+        a.AP("foo")
+        a.AA("bar")
+        a.AA("baz")
+        a.AddLocal("x")
+        a.AddLocal("y")
+        a.AI("MOV EAX,bar")
+        a.AI("MOV EAX,baz")
+        a.AI("MOV x,EAX")
+        a.AI("MOV y,12")
         
 if __name__ == '__main__':
-    a = assembler()
-    a.AD('hw_string','Hello, World!\n\0')
-    a.AP('_main')
-    a.AI('PUSH hw_string')
-    a.AI('CALL _printf')
-    a.AI('ADD ESP,4')
-    a.AI('XOR EAX,EAX')
-    a.AI('RET')
-    a.AP('_main2')
-    a.AI('PUSH hw_string')
-    a.AI('CALL _printf')
-    a.AI('ADD ESP,4')
-    a.AI('XOR EAX,EAX')
-    a.AI('RET')
+    unittest.main()
     
