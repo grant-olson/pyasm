@@ -22,7 +22,6 @@ class x86tokenizer_test(unittest.TestCase):
         re.compile(instRegRe)
 
     def test_tokenizeInstDef(self):
-        self.failUnlessRaises(tokenizeError,tokenizeInstDef,"MOV EAX,12")
         self.failUnlessRaises(tokenizeError,tokenizeInstDef,"MOV EAX,foo")
 
     def test_InstDefVerification(self):

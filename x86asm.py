@@ -43,27 +43,34 @@ def possibleDefault(*toks):
 
 def possibleImmediateOrRelative(*toks):
     # TODO: can we narrow down which one this should be?
-    immVals = ['imm32','imm16']
-    relVals = ['rel32','rel16']
+    immVals = [(OPERAND,'imm32'),(OPERAND,'imm16')]
+    relVals = [(OPERAND,'rel32'),(OPERAND,'rel16')]
     first,rest = toks[0],toks[1:]
-
+    vals = []
+    
     #if it's 8 bit, try to grab smaller opcode
     if first[0] == NUMBER:
         num = eval(first[1])
         if num >= -127 and num <= 128:
-            immVals.insert(0,'imm8')
-            relVals.insert(0,'rel8')
+            immVals.insert(0,(OPERAND,'imm8'))
+            relVals.insert(0,(OPERAND,'rel8'))
 
-    vals = immVals + relVals    
+       
+    #lookup constant value like INT 3
+    if first[0] == NUMBER:
+        vals.append(first)
+        
+    vals.extend(immVals)
+    vals.extend(relVals)    
     
     if not rest:
         for val in vals:
-            yield [(OPERAND, val)]
+            yield [val]
     else:
         possibleLookup = getProperLookup(*rest)
         for val in vals:
             for restMatches in possibleLookup(*rest):
-                yldVal = [(OPERAND,val)]
+                yldVal = [val]
                 yldVal.extend(restMatches)
                 yield yldVal
 

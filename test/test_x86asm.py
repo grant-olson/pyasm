@@ -36,6 +36,9 @@ class test_instruction_lookups(unittest.TestCase):
         self.assertEquals(findBestMatch('PUSH hw_string').InstructionString,'PUSH imm32')
         self.assertEquals(findBestMatch('CALL _printf').InstructionString,'CALL rel32')
 
+    def test_int3(self):
+        self.assertEquals(findBestMatch('INT 3').InstructionString,'INT 3')
+        
 class assemblerTests(unittest.TestCase):
     def test_basic_assembler(self):
         a = assembler()

@@ -90,8 +90,8 @@ numberRe = '(?P<NUMBER>[\+\-]?(0x[0-9A-Fa-f]+|[0-9]+))'
 symbolRe = '(?P<SYMBOL>[A-Za-z_@]+)'
 
 #define final re's
-instructionDefRe = re.compile("(?:%s*(?:%s|%s|%s|%s|%s|%s)(?P<rest>.*))" % \
-                           (whitespaceRe,defRegRe,operandRe,symbolRe,commaRe,lbracketRe,rbracketRe))
+instructionDefRe = re.compile("(?:%s*(?:%s|%s|%s|%s|%s|%s|%s)(?P<rest>.*))" % \
+                           (whitespaceRe,defRegRe,operandRe,symbolRe,commaRe,numberRe,lbracketRe,rbracketRe))
 
 instructionRe = re.compile("(?:%s*(?:%s|%s|%s|%s|%s|%s)(?P<rest>.*))" % \
                            (whitespaceRe,lbracketRe,rbracketRe,instRegRe,
@@ -152,7 +152,7 @@ def tokenizeInstDef(s):
         index += 1
         
     while index < length:
-        if toks[index][0] not in (REGISTER,OPERAND):
+        if toks[index][0] not in (REGISTER,OPERAND,NUMBER):
             raise tokenizeError("Invalid Instruction Definition: '%s' " \
                                 "Expected a REGISTER OR OPERAND ENTRY" % s)
         index += 1
