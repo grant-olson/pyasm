@@ -1,7 +1,3 @@
-#
-# TODO: Fix 'mo'
-#
-
 import re, struct
 
 class OpcodeTooShort(Exception):pass
@@ -334,7 +330,10 @@ class instructionInstance:
 
     def GetInstructionSize(self):
         return len(self.Instruction.Opcode) + self.GetSuffixSize()
-    
+
+    def NextInstructionLoc(self):
+            return self.GetInstructionSize() + self.Address
+        
     def LoadData(self, data):
         first,rest = '',data
         if self.Instruction.HasModRM:
@@ -444,7 +443,8 @@ class instructionInstance:
                 if val in immediate:
                     operandStr += "%X" % self.Immediate
                 elif val in displacement:
-                    operandStr += "%X" % self.Displacement
+                    operandStr += "%X" % (self.Displacement +
+                                          self.NextInstructionLoc())
                 elif val in ('r8','r16','r32','mm','xmm','/digit','REG'):
                     operandStr += self.ModRM.RegOpString(val)
                 elif val in ('r/m8','r/m16','r/m32'):
