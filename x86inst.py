@@ -1,7 +1,14 @@
-import re
+#
+# TODO: PRoperly deal with +rb,+rw,+rd
+# TODO: Decode ModRM info
+# TODO: Use OpcodeDef to figure out things instead of scanning string
+# TODO: Fix 'mo'
+#
+
+import re, struct
 
 class OpcodeTooShort(Exception):pass
-class OpcodeNeedsModRM(Exception):pass # for /d info
+class OpcodeNeedsModRM(Exception):pass # for /d info and SIB calculation
 class OpcodeNeedsPreferredSize(Exception):pass # for 16/32 byte dupes
 
 class OpcodeDict(dict):
@@ -23,7 +30,7 @@ class OpcodeDict(dict):
             dict.__setitem__(self,key,[value])
         # Sentinel for multi-byte opcodes
         if len(key) > 1:
-            for i in range(len(key)-1):
+            for i in range(1,len(key)):
                 tmpKey = key[:i]
                 dict.__setitem__(self,tmpKey,None)
                 
@@ -31,9 +38,8 @@ class OpcodeDict(dict):
         lst = self.__getitem__(opcode)
         
         if modRM is not None:
-            digit = modRM & 0x38
-            digit = digit >> 3
-            digit = "/%s" % digit
+            mrm = ModRM(modRM)
+            digit = "/%s" % mrm.RegOp
             lst = [item for item in lst if digit in item.OpcodeFlags]
         if preferredSize is not None:
             if preferredSize == 16:
@@ -41,11 +47,15 @@ class OpcodeDict(dict):
                 lst = [item for item in lst if item.InstructionString.find('r/m32') == -1]
                 lst = [item for item in lst if item.InstructionString.find('imm32') == -1]
                 lst = [item for item in lst if item.InstructionString.find('rel32') == -1]
+                lst = [item for item in lst if item.InstructionString.find('mo32') == -1]
+                lst = [item for item in lst if 'rd' not in item.OpcodeFlags]
             elif preferredSize == 32:
                 lst = [item for item in lst if item.InstructionString.find('r16') == -1]
                 lst = [item for item in lst if item.InstructionString.find('r/m16') == -1]
                 lst = [item for item in lst if item.InstructionString.find('imm16') == -1]
                 lst = [item for item in lst if item.InstructionString.find('rel16') == -1]
+                lst = [item for item in lst if item.InstructionString.find('mo16') == -1]
+                lst = [item for item in lst if 'rw' not in item.OpcodeFlags]
             else:
                 raise RuntimeError("Invalid Preferred size")
                 
@@ -71,13 +81,59 @@ opcodeFlags = ['/0','/1','/2','/3','/4','/5','/6','/7',
                '+rb','+rw','+rd',
                '+i'
                ]
+
 instModRM = ['r/m8','r/m16','r/m32','r8','r16','r32']
-immediate = ['imm8','imm16','imm32']
+#mo is my name, intel just calls it m
+immediate = ['imm8','imm16','imm32','mo','mo8','mo16','mo32','mo64','mo128']
+
+
 displacement = ['rel8','rel16','rel32']
 
 rb =['AL','CL','DL','BL','AH','CH','DH','BH']
 rw = ['AX','CX','DX','BX','SP','BP','SI','DI']
 rd = ['EAX','ECX','EDX','EBX','ESP','EBP','ESI','EDI']
+
+regOpcode = {
+    'r8':['AL','CL','DL','BL','AH','CH','DH','BH'],
+    'r16':['AX','CX','DX','BX','SP','BP','SI','DI'],
+    'r32':['EAX','ECX','EDX','EBX','ESP','EBP','ESI','ESI','EDI'],
+    'mm':['MM0','MM1','MM2','MM3','MM4','MM5','MM6','MM7'],
+    'xmm':['XMM0','XMM1','XMM2','XMM3','XMM4','XMM5','XMM6','XMM7'],
+    '/digit':[0,1,2,3,4,5,6,7],
+    'REG':[0,1,2,3,4,5,6,7],
+    }
+
+
+class ModRM:
+    def __init__(self,byte=None):
+        self.Mode = 0x0
+        self.RegOp = 0x0
+        self.RM = 0x0
+        if byte:
+            self.LoadFromByte(byte)
+
+    def LoadFromByte(self,byte):
+            self.RegOp = byte & 0x38
+            self.RegOp = self.RegOp >> 3
+            self.RM = byte & 0x7
+            self.Mode = byte & 192
+            self.Mode = self.Mode >> 6
+
+    def SaveToByte(self):
+        return self.Mod << 6 + self.RegOp << 3 + self.RM
+
+    def HasSIB(self):
+        if self.Mode in (0,1,2) and self.RM == 4:
+            return True
+        else:
+            return False
+
+opcodeRe = '(?P<opcode>[A-Z]+)'
+operandRe = '(?P<operand>[a-z/:0-9]+)'
+commaRe = '(?P<comma>[,]+)'
+regRe = '(?P<register>AL|CL|DL|BL|AH|CH|DH|BH|AX|CX|DX|BX|SP|BP|SI|DI|EAX|ECX|EDX|EBX|ESP|EBP|ESI|EDI)'
+instructionRe = re.compile("(?:\s*(?:%s|%s|%s|%s)(?P<rest>.*))" % (regRe,opcodeRe,commaRe,operandRe))
+REGISTER,OPCODE,COMMA,OPERAND = range(1,5)
 
 class instruction:
     def __init__(self,opstr,inststr,desc):
@@ -88,44 +144,54 @@ class instruction:
         self.Opcode = []
         self.OpcodeSize = 0
         self.OpcodeFlags = []
+
+        self.tokenizeInstructionString()
         
         self.HasImmediate = False
         self.ImmediateSize = 0 # no of bytes
-        self.Immediate = None
 
         self.HasModRM = False        
         self.ModRM = None
-
-        self.HasSIB = False
-        self.SIB = None
 
         self.HasPrefixes = False        
         self.Prefixes = None
 
         self.HasDisplacement = False
         self.DisplacementSize = 0
-        self.Displacement = None
 
         self.setOpcodeAndFlags()
         self.setHasFlags()
 
         if '+rb' in self.OpcodeFlags:
-            for i in range(8):
-                oplist = list(self.Opcode)
-                oplist[0] += i
-                opcodeDict[tuple(oplist)] = self
+            self.loadRBWD('+rb','r8')
         elif '+rw' in self.OpcodeFlags:
-            for i in range(8):
-                oplist = list(self.Opcode)
-                oplist[0] += i
-                opcodeDict[tuple(oplist)] = self
+            self.loadRBWD('+rw','r16')
         elif '+rd' in self.OpcodeFlags:
-            for i in range(8):
-                oplist = list(self.Opcode)
-                oplist[0] += i
-                opcodeDict[tuple(oplist)] = self
+            self.loadRBWD('+rd','r32')
         else:
             opcodeDict[self.Opcode] = self        
+
+    def loadRBWD(self,plus,reg):
+        for i in range(8):
+            OS = self.OpcodeString
+            IS = self.InstructionString
+            ID = self.Description
+            OS = OS.replace(plus,plus[1:])
+            OS = OS.replace("%X" % self.Opcode[0], '%X' % (self.Opcode[0] + i))
+            IS = IS.replace(reg, regOpcode[reg][i])
+            instruction(OS,IS,ID)
+            
+    def tokenizeInstructionString(self):
+        lst = []
+        rest = self.InstructionString
+        while rest:
+            instDict = instructionRe.match(rest).groupdict()
+            if instDict['register']: lst.append((REGISTER,instDict['register']))
+            if instDict['operand']: lst.append((OPERAND,instDict['operand']))
+            if instDict['opcode']: lst.append((OPCODE,instDict['opcode']))
+            if instDict['comma']: lst.append((COMMA,instDict['comma']))
+            rest = instDict['rest']
+        self.InstructionDef = lst
 
     def setOpcodeAndFlags(self):
         parts = self.OpcodeString.split()
@@ -142,12 +208,18 @@ class instruction:
     def setHasFlags(self):
         for i in instModRM:
             if i in self.InstructionString:
+                if "+rb" in self.OpcodeFlags: break
+                if "+rw" in self.OpcodeFlags: break
+                if "+rd" in self.OpcodeFlags: break
                 self.HasModRM = True
                 break
         for i in immediate:
             if i in self.InstructionString:
+                #hack fix, how do we do this right?
+                #if i.startswith('m') and 'imm' in self.InstructionString:
+                #    continue
                 self.HasImmediate = True
-                if i.endswith('8'):
+                if i.endswith('8') or i == 'mo':
                     self.ImmediateSize = 1
                 elif i.endswith('16'):
                     self.ImmediateSize = 2
@@ -170,18 +242,10 @@ class instruction:
                     raise RuntimeError("Invalid Displacement Value")
                 break
         #%TODO: figure out logic for SIB, and prefixes        
-        
-    def GetSuffixSize(self):
-        "Size for everything after Opcode"
-        if '+rb' in self.OpcodeFlags or '+rw' in self.OpcodeFlags or '+rd' in self.OpcodeFlags:
-            return 0
-        size = 0
-        if self.HasModRM: size += 1
-        if self.HasSIB: size += 1
-        if self.HasDisplacement: size += self.DisplacementSize
-        if self.HasImmediate: size += self.ImmediateSize
-        return size
 
+    def GetInstance(self):
+        return instructionInstance(self)
+    
     def __str__(self):
         retVal = ""
         retVal += self.OpcodeString + "\n"
@@ -192,6 +256,116 @@ class instruction:
     
 i = instruction
 
+class instructionInstance:
+    """
+    An instructionInstance is an instruction + the data for an instance's
+    prefixes and suffixes
+    """
+    def __init__(self,inst):
+        self.Instruction = inst
+        self.Prefixes = []
+        self.ModRM = None
+        self.SIB = None
+        self.Displacement = None
+        self.Immediate = None
+
+    def GetSuffixSize(self,modrm=None):
+        "Size for everything after Opcode"
+        #if '+rb' in self.OpcodeFlags or '+rw' in self.OpcodeFlags or '+rd' in self.OpcodeFlags:
+        #    return 0
+        size = 0
+        if self.Instruction.HasModRM:
+            size += 1
+            if modrm == None:
+                raise OpcodeNeedsModRM()
+            else:
+                mrm = ModRM(modrm)
+                if mrm.HasSIB():
+                    size += 1
+        if self.Instruction.HasDisplacement:
+            size += self.Instruction.DisplacementSize
+        if self.Instruction.HasImmediate:
+            size += self.Instruction.ImmediateSize
+        return size
+    
+    def LoadData(self, data):
+        first,rest = '',data
+        if self.Instruction.HasModRM:
+            first,rest = rest[0],rest[1:]
+            self.ModRM = ModRM(struct.unpack("<b",first)[0])
+            if self.ModRM.HasSIB():
+                first,rest = rest[0],rest[1:]
+                self.SIB = struct.unpack("<b",first)[0]
+                
+        if self.Instruction.HasDisplacement:
+            if self.Instruction.DisplacementSize == 1:
+                first,rest = rest[0],rest[1:]
+                self.Displacement = struct.unpack("<b",first)[0]
+            elif self.Instruction.DisplacementSize == 2:
+                first,rest = rest[:2],rest[2:]
+                self.Displacement = struct.unpack("<s",first)[0]
+            elif self.Instruction.DisplacementSize == 4:
+                first,rest = rest[:4],rest[4:]
+                self.Displacement = struct.unpack('<l',first)[0]
+            else:
+                raise RuntimeError("Invalid Displacement size")
+
+        if self.Instruction.HasImmediate:
+            if self.Instruction.ImmediateSize == 1:
+                first,rest = rest[0],rest[1:]
+                self.Immediate = struct.unpack("<b",first)[0]
+            elif self.Instruction.ImmediateSize == 2:
+                first,rest = rest[:2],rest[2:]
+                self.Immediate = struct.unpack("<s",first)[0]
+            elif self.Instruction.ImmediateSize == 4:
+                first,rest = rest[:4],rest[4:]
+                self.Immediate = struct.unpack('<l',first)[0]
+            else:
+                raise RuntimeError("Invalid Immdediate size [%s]" % self.ImmediateSize)
+
+        if rest:
+            raise RuntimeError("Couldn't unpack all data")
+
+    def OpText(self):
+        retVal = ''
+        for typ,val in self.Instruction.InstructionDef:
+            if typ == OPCODE:
+                retVal += val + " "
+            elif typ == COMMA:
+                retVal += val
+            elif typ == REGISTER:
+                retVal += val
+            elif typ == OPERAND:
+                if val in immediate:
+                    retVal += "%08X" % self.Immediate
+                elif val in displacement:
+                    retVal += "%08X" % self.Displacement
+                elif val in ('r8','r16','r32','mm','xmm','/digit','REG'):
+                    #print val
+                    #print self.ModRM
+                    if '+rd' not in self.Instruction.OpcodeFlags:
+                        retVal += regOpcode[val][self.ModRM.RegOp]
+                    else:
+                        retVal += val
+                elif val in ('r/m8','r/m16','r/m32'):
+                    if self.ModRM.Mode == 3:
+                        if val == 'r/m8':
+                            retVal += regOpcode['r8'][self.ModRM.RM]
+                        elif val == 'r/m16':
+                            retVal += regOpcode['r16'][self.ModRM.RM]
+                        elif val == 'r/m32':
+                            retVal += regOpcode['r32'][self.ModRM.RM]
+                        else:
+                            raise RuntimeError("Invalid r/m type")
+                    else:
+                        retVal += val
+                else:
+                    # should check for other types
+                    retVal += val
+            else:
+                raise RuntimeError("Invalid op type[%s %s]" % (typ,val))
+        return retVal
+    
 i("04 ib", "ADD AL,imm8", "Add imm8 to AL")
 i("05 iw", "ADD AX,imm16", "Add imm16 to AX")
 i("05 id", "ADD EAX,imm32", "Add imm32 to EAX")
@@ -199,13 +373,13 @@ i("80 /0 ib", "ADD r/m8,imm8", "Add imm6 to r/m8")
 i("81 /0 iw", "ADD r/m16,imm16", "Add imm16 to r/m16")
 i("81 /0 id", "ADD r/m32,imm32", "Add imm32 to r/m32")
 i("83 /0 ib", "ADD r/m16, imm8", "Add sign extended imm8 to r/m16")
-i("83 /0 iw", "Add r/m32,imm8", "Add sign extended imm8 to r/m32")
-i("00 /r", "Add r/m8,r8", "Add r8 to r/m8")
-i("01 /r", "Add r/m16,r16", "Add r16 to r/m16")
-i("01 /r", "Add r/m32,r32", "Add r32 to r/m32")
-i("02 /r", "Add r8,r/m8", "Add r/m8 to r/8")
-i("03 /r", "Add r16,r/m16", "Add r/m16 to r16")
-i("03 /r", "Add r32,r/m32", "Add r/m32 to r32")
+i("83 /0 iw", "ADD r/m32,imm8", "Add sign extended imm8 to r/m32")
+i("00 /r", "ADD r/m8,r8", "Add r8 to r/m8")
+i("01 /r", "ADD r/m16,r16", "Add r16 to r/m16")
+i("01 /r", "ADD r/m32,r32", "Add r32 to r/m32")
+i("02 /r", "ADD r8,r/m8", "Add r/m8 to r/8")
+i("03 /r", "ADD r16,r/m16", "Add r/m16 to r16")
+i("03 /r", "ADD r32,r/m32", "Add r/m32 to r32")
 
 i("E8 cw", "CALL rel16", "Call near, relative, displacement relative to next instruction")
 i("E8 cd", "CALL rel32", "Call near, relative, displacement relative to next instruction")
@@ -216,8 +390,23 @@ i("9A cp", "CALL ptr32:32", "Call far, absolute, address given in operand")
 i("FF /3", "CALL m16:16", "Call far, absolute indirect, address given in m16:16")
 i("FF /3", "CALL m32:32", "Call far, absolute indirect, address given in m32:32")
 
-i("8D /r", "LEA r16,m", "Store effective address for m in register r16.")
-i("8D /r", "LEA r32,m", "Store effective address for m in register r32")
+i("3C ib", "CMP AL,imm8", "Compare imm8 with AL.")
+i("3D iw", "CMP AX,imm16", "Compare imm16 with AX.")
+i("3D id", "CMP EAX,imm32", "Compare imm32 with EAX.")
+i("80 /7 ib", "CMP r/m8,imm8", "Compare imm8 with r/m8.")
+i("81 /7 iw", "CMP r/m16,imm16", "Compare imm16 with r/m16.")
+i("81 /7 id", "CMP r/m32,imm32", "Compare imm32 with r/m32.")
+i("83 /7 ib", "CMP r/m16,imm8", "Compare imm8 with r/m16.")
+i("83 /7 ib", "CMP r/m32,imm8", "Compare imm8 with r/m32.")
+i("38 /r", "CMP r/m8,r8", "Compare r8 with r/m8.")
+i("39 /r", "CMP r/m16,r16", "Compare r16 with r/m16.")
+i("39 /r", "CMP r/m32,r32", "Compare r32 with r/m32.")
+i("3A /r", "CMP r8,r/m8", "Compare r/m8 with r8.")
+i("3B /r", "CMP r16,r/m16", "Compare r/m16 with r16.")
+i("3B /r", "CMP r32,r/m32", "Compare r/m32 with r32.")
+
+i("8D /r", "LEA r16,mo", "Store effective address for m in register r16.")
+i("8D /r", "LEA r32,mo", "Store effective address for m in register r32")
 
 i("88 /r","MOV r/m8,r8","Move r8 to r/m8.")
 i("89 /r","MOV r/m16,r16","Move r16 to r/m16.")
@@ -239,6 +428,16 @@ i("C6 /0", "MOV r/m8,imm8", "Move imm8 to r/m8")
 i("C7 /0", "MOV r/m16,imm16", "Move imm16 to r/m16")
 i("C7 /0", "MOV r/m32,imm32", "Move imm32 to r/m32")
 
+i("8F /0", "POP r/m16", "Pop top of stack into m16; increment stack pointer.")
+i("8F /0", "POP r/m32", "Pop top of stack into m32; increment stack pointer.")
+i("58 +rw", "POP r16", "Pop top of stack into r16; increment stack pointer.")
+i("58 +rd", "POP r32", "Pop top of stack into r32; increment stack pointer.")
+i("1F", "POP DS", "Pop top of stack into DS; increment stack pointer.")
+i("07", "POP ES", "Pop top of stack into ES; increment stack pointer.")
+i("17", "POP SS", "Pop top of stack into SS; increment stack pointer.")
+i("0F A1", "POP FS", "Pop top of stack into FS; increment stack pointer.")
+i("0F A9", "POP GS", "Pop top of stack into GS; increment stack pointer.")
+
 i("FF /6", "PUSH r/m16", "Push r/m16.")
 i("FF /6", "PUSH r/m32", "PUSH r/m32.")
 i("50 +rw", "PUSH r16", "Push r16.")
@@ -252,6 +451,34 @@ i("1E", "PUSH DS", "Push DS")
 i("06", "PUSH ES", "PUsh ES")
 i("0F A0", "PUSH FS", "Push FS.")
 i("0F A8", "PUSH GS", "Push GS.")
+
+i("F3 6C", "REP INS mo8,DX" ,"Input (E)CX bytes from port DX into ES:[(E)DI].")
+i("F3 6D", "REP INS mo16,DX", "Input (E)CX words from port DX into ES:[(E)DI].")
+i("F3 6D", "REP INS mo32,DX", "Input (E)CX doublewords from port DX into ES:[(E)DI].")
+i("F3 A4", "REP MOVS mo8,mo8", "Move (E)CX bytes from DS:[(E)SI] to ES:[(E)DI].")
+i("F3 A5", "REP MOVS mo16,mo16","Move (E)CX words from DS:[(E)SI] to ES:[(E)DI].")
+i("F3 A5", "REP MOVS mo32,mo32", "Move (E)CX doublewords from DS:[(E)SI] to ES:[(E)DI].")
+i("F3 6E", "REP OUTS DX,r/m8","Output (E)CX bytes from DS:[(E)SI] to port DX.")
+i("F3 6F", "REP OUTS DX,r/mo16","Output (E)CX words from DS:[(E)SI] to port DX.")
+i("F3 6F", "REP OUTS DX,r/mo32", "Output (E)CX doublewords from DS:[(E)SI] to port DX.")
+i("F3 AC", "REP LODS AL" ,"Load (E)CX bytes from DS:[(E)SI] to AL.")
+i("F3 AD",  "REP LODS AX", "Load (E)CX words from DS:[(E)SI] to AX.")
+i("F3 AD", "REP LODS EAX", "Load (E)CX doublewords from DS:[(E)SI] to EAX.")
+i("F3 AA", "REP STOS mo8", "Fill (E)CX bytes at ES:[(E)DI] with AL.")
+i("F3 AB", "REP STOS mo16", "Fill (E)CX words at ES:[(E)DI] with AX.")
+i("F3 AB", "REP STOS mo32","Fill (E)CX doublewords at ES:[(E)DI] with EAX.")
+i("F3 A6", "REPE CMPS mo8,mo8", "Find nonmatching bytes in ES:[(E)DI] and DS:[(E)SI].")
+i("F3 A7", "REPE CMPS mo16,mo16", "Find nonmatching words in ES:[(E)DI] and DS:[(E)SI].")
+i("F3 A7", "REPE CMPS mo32,mo32","Find nonmatching doublewords in ES:[(E)DI] and DS:[(E)SI].")
+i("F3 AE", "REPE SCAS mo8",  "Find non-AL byte starting at ES:[(E)DI].")
+i("F3 AF", "REPE SCAS mo16", "Find non-AX word starting at ES:[(E)DI].")
+i("F3 AF", "REPE SCAS mo32", "Find non-EAX doubleword starting at ES:[(E)DI].")
+i("F2 A6", "REPNE CMPS mo8,mo8", "Find matching bytes in ES:[(E)DI] and DS:[(E)SI].")
+i("F2 A7", "REPNE CMPS mo16,mo16", "Find matching words in ES:[(E)DI] and DS:[(E)SI].")
+i("F2 A7", "REPNE CMPS mo32,mo32", "Find matching doublewords in ES:[(E)DI] and DS:[(E)SI].")
+i("F2 AE", "REPNE SCAS mo8", "Find AL, starting at ES:[(E)DI].")
+i("F2 AF", "REPNE SCAS mo16", "Find AX, starting at ES:[(E)DI].")
+i("F2 AF", "REPNE SCAS mo32", "Find EAX, starting at ES:[(E)DI].")
 
 i("C3", "RET", "Near return to calling procedure")
 i("CB", "RET", "Far Return to calling procedure")
@@ -287,3 +514,4 @@ i("31 /r", "XOR r/m16,r16", "r/m16 XOR r16")
 i("32 /r", "XOR r8,r/m8", "r8 XOR r/m8")
 i("33 /r", "XOR r16,r/m16", "r16 XOR r/m16")
 i("33 /r", "XOR r32,r/m32", "r32 XOR r/m32")
+

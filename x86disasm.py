@@ -41,15 +41,27 @@ class x86Disassembler:
             op = []
             op.append(self.Code.GetUnsignedByte())
             try:
-                try:
-                    inst = opcodeDict.GetOp(tuple(op), preferredSize=32)
-                except OpcodeNeedsModRM,x:
-                    modRM = struct.unpack("<B", self.Code.Data[self.Code.Location])[0]
-                    inst = opcodeDict.GetOp(tuple(op),
-                                            modRM=modRM, preferredSize=32)
+                while 1:
+                    try:
+                        inst = opcodeDict.GetOp(tuple(op), preferredSize=32)
+                        break
+                    except OpcodeNeedsModRM,x:
+                        modRM = struct.unpack("<B", self.Code.Data[self.Code.Location])[0]
+                        inst = opcodeDict.GetOp(tuple(op),
+                                                modRM=modRM, preferredSize=32)
+                        break
+                    except OpcodeTooShort,x:
+                        op.append(self.Code.GetUnsignedByte())
             except KeyError,x:
                 raise RuntimeError("Unsupported Opcode '%s'" % op)
-            print inst.InstructionString,
-            print repr(self.Code.GetString(inst.GetSuffixSize()))
+            instInst = inst.GetInstance()
+            #print instInst.Instruction.InstructionString
+            try:
+                suffixSize = instInst.GetSuffixSize()
+            except OpcodeNeedsModRM,x:
+                modRM = struct.unpack("<B", self.Code.Data[self.Code.Location])[0]
+                suffixSize = instInst.GetSuffixSize(modRM)
+            instInst.LoadData(self.Code.GetString(suffixSize))
+            print instInst.OpText()
             
 
