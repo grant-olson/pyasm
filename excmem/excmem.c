@@ -105,19 +105,11 @@ excmem_BindFunctionAddress(PyObject *self, PyObject *args)
 static PyObject *
 excmem_GetSymbolAddress(PyObject *self, PyObject *args)
 {
-	char *libname;
 	char *symname;
-	void *lib_addr;
 	void *sym_addr;
 
-	if (!PyArg_ParseTuple(args, "ss", &libname, &symname))
+	if (!PyArg_ParseTuple(args, "s", &symname))
 		return NULL;
-
-	/*lib_addr = dlopen(libname,RTLD_LAZY);
-	/*if(!lib_addr) {
-		PyErr_SetString(ExcmemError,"Couln't resolve library");
-		return NULL;
-	}*/
 
 	sym_addr = dlsym(0,symname);
 	if(!sym_addr) {

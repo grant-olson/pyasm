@@ -22,7 +22,7 @@ if sys.platform == 'win32':
         return addr
 elif sys.platform in ('linux2'):
     def runtimeResolve(funcName):
-        return excmem.GetSymbolAddress(sys.executable,funcName)
+        return excmem.GetSymbolAddress(funcName)
 else:
     raise RuntimeError("Don't know how to resolve external symbols for platform '%s'" % sys.platform)
 
