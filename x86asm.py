@@ -163,12 +163,18 @@ class data:
         self.Data = dat
         self.Address = 0x0
 
+class procedure:
+    def __init__(self,name):
+        self.Name = name
+        self.Args = []
+        self.Locals = []
 
 class assembler:
     def __init__(self):
         self.Instructions = []
         self.Data = []
         self.Labels = {}
+        self.CurrentProcedure = None
 
     def registerLabel(self,lbl):
         if self.Labels.has_key(lbl.Name):
@@ -199,15 +205,38 @@ class assembler:
     def AD(self,name,dat):
         self.AddData(name,dat)
 
+    def AddProcedure(self,name):
+        proc = procedure(name)
+        self.registerLabel(proc)
+        self.CurrentProcedure = proc
 
+    def AP(self,name):
+        self.AddProcedure(name)
+
+    def AddArgument(self,name):
+        arg = label(name)
+        self.CurrentProcedure.Args.append(arg)
+
+    def AA(self,name):
+        self.AddArgument(self,name)
+
+    def AddLocal(self,name):
+        local = label(name)
+        self.CurrentProcedure.Locals.append(arg)
+        
 if __name__ == '__main__':
     a = assembler()
     a.AD('hw_string','Hello, World!\n\0')
-    a.AIL('_main')
+    a.AP('_main')
     a.AI('PUSH hw_string')
     a.AI('CALL _printf')
     a.AI('ADD ESP,4')
     a.AI('XOR EAX,EAX')
     a.AI('RET')
-
+    a.AP('_main2')
+    a.AI('PUSH hw_string')
+    a.AI('CALL _printf')
+    a.AI('ADD ESP,4')
+    a.AI('XOR EAX,EAX')
+    a.AI('RET')
     
