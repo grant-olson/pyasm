@@ -37,6 +37,15 @@ def charsAsBinDump(chars, address = 0):
 
         
 class coffSymbolList(list):
+    def __init__(self):
+        list.__init__(self)
+        self.currentLocation = 0
+
+    def append(self,item):
+        item.Location = self.currentLocation
+        self.currentLocation += item.Rows()
+        list.append(self,item)
+        
     def DumpInfo(self):
         if self:
             print "Symbol Entry Table"
@@ -59,6 +68,10 @@ class coffSymbolList(list):
             sym.WriteToFile(f)
 
     def SetLocations(self):
+        """
+        Do we still need this?
+        I'm getting this on the append operation.
+        """
         start = 0
         for sym in self:
             sym.Location = start
@@ -70,7 +83,12 @@ class coffSymbolList(list):
                 return sym.Location
         raise coffError("Couldn't find symbol '%s'" % symbolName)
             
-            
+    def GetSymbol(self,symbolName):
+        for sym in self:
+            if sym.Fullname == symbolName:
+                return sym
+        raise coffError("Couldn't find symbol '%s'" % symbolName)
+    
 class coffLineNumberEntry:
     def __init__(self,sym=0x0,num=0x0):
         self.Symbol = sym
@@ -352,16 +370,25 @@ class coffFile:
         self.SymbolTableLoc = offset
         
     def AddSymbol(self,name="",value=0x0,sec=0x0,typ=0x0,cls=0x0,aux=''):
-        fullname = name
+##        fullname = name
+##        if len(name) > 8: #add name to symbol table and reference
+##            if name[-1] != '\x00':
+##                name += '\x00'
+##            pos = len(self.StringTable) + 4
+##            self.StringTable += name
+##            name = '\x00\x00\x00\x00' + ulongToString(pos)        
+        self.AddExistingSymbol(coffSymbolEntry(name,value,sec,typ,cls,aux))#,fullname))
+        
+    def AddExistingSymbol(self, sym):
+        name = sym.Name
         if len(name) > 8: #add name to symbol table and reference
             if name[-1] != '\x00':
                 name += '\x00'
             pos = len(self.StringTable) + 4
             self.StringTable += name
-            name = '\x00\x00\x00\x00' + ulongToString(pos)        
-        self.Symbols.append(coffSymbolEntry(name,value,sec,typ,cls,aux,fullname))
-        
-    def AddExistingSymbol(self, sym):
+            name = '\x00\x00\x00\x00' + ulongToString(pos)
+            sym.Fullname = sym.Name
+            sym.Name = name
         self.Symbols.append(sym)
     
     def DumpInfo(self):

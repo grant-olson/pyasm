@@ -137,7 +137,10 @@ mnemonicDict = MnemonicDict()
 def longToBytes(long, bytes=4):
     retVal = [ord(x) for x in encode_long(long)]
     while len(retVal) < bytes:
-        retVal.append(0)
+        if abs(long) == long:
+            retVal.append(0)
+        else:
+            retVal.append(0xFF)
     if len(retVal) > bytes:
         good,bad = retVal[:bytes],retVal[bytes:]
         for x in bad:
@@ -211,10 +214,7 @@ class ModRM:
         elif self.Mode == 1:
             return 1
         elif self.Mode == 2:
-            if self.RM <= 4:
-                return 4
-            else:
-                return 1
+            return 4
         else:
             return 0
         
@@ -329,6 +329,8 @@ class instruction:
     
 i = instruction
 
+RELATIVE,DIRECT = range(1,3)
+
 class instructionInstance:
     """
     An instructionInstance is an instruction + the data for an instance's
@@ -361,15 +363,15 @@ class instructionInstance:
                 size += 1
             if mrm.GetDisplacementSize():
                 if self.DisplacementSymbol:
-                    retVal.append( (self.DisplacementSymbol,self.Address + size) )
+                    retVal.append( (self.DisplacementSymbol,self.Address + size, RELATIVE) )
                 size += mrm.GetDisplacementSize()
         if self.Instruction.HasDisplacement:
             if self.DisplacementSymbol:
-                    retVal.append( (self.DisplacementSymbol,self.Address + size) )
+                    retVal.append( (self.DisplacementSymbol,self.Address + size, RELATIVE) )
             size += self.Instruction.DisplacementSize
         if self.Instruction.HasImmediate:
             if self.ImmediateSymbol:
-                retVal.append( (self.ImmediateSymbol, self.Address + size))
+                retVal.append( (self.ImmediateSymbol, self.Address + size, DIRECT))
             size += self.Instruction.ImmediateSize
         return retVal
 
@@ -512,9 +514,15 @@ class instructionInstance:
                             regTok = firstTok
                             firstTok, restTok = restTok[0],restTok[1:]
                             if firstTok[0] in (NUMBER,SYMBOL): #displacement
-                                #assume mode 0x2 for now
-                                tmpModRM.Mode = 2
-                                tmpModRM.RM = ['EAX','ECX','EDX','EBX]',
+                                if firstTok[0] == NUMBER:
+                                    num = eval(firstTok[1])
+                                    if num >= -127 and num <= 128:
+                                        tmpModRM.Mode = 1
+                                    else:
+                                        tmpModRM.Mode = 2
+                                else:
+                                    tmpModRM.Mode = 2
+                                tmpModRM.RM = ['EAX','ECX','EDX','EBX',
                                                '[--][--]','EBP','ESI',
                                                'EDI'].index(regTok[1])
                                 if firstTok[0] == NUMBER:
@@ -525,7 +533,7 @@ class instructionInstance:
                                 firstTok, restTok = restTok[0],restTok[1:]
                             else: # no displacement
                                 tmpModRM.Mode = 0
-                                tmpModRM.RM = ['EAX','ECX','EDX','EB]',
+                                tmpModRM.RM = ['EAX','ECX','EDX','EBX',
                                                 '[--][--]','disp32','ESI',
                                                'EDI'].index(regTok[1])
                             
@@ -563,6 +571,10 @@ class instructionInstance:
                 break
             firstDef, restDef = restDef[0],restDef[1:]
             firstTok, restTok = restTok[0],restTok[1:]
+
+        for flag in self.Instruction.OpcodeFlags:
+            if flag in ['/0','/1','/2','/3','/4','/5','/6','/7']:
+                tmpModRM.RegOp = eval(flag[1])
         self.ModRM = tmpModRM
         
     def OpDataAsString(self):
@@ -580,6 +592,7 @@ class instructionInstance:
             if disp == 1:
                 retVal += ''.join(longToString(self.Displacement,1))
             elif disp == 4:
+                logging.error("DISPLACEMENT %s" % self.Displacement)
                 retVal += ''.join(longToString(self.Displacement,4))
         if self.Instruction.HasDisplacement:
             retVal += ''.join(longToString(self.Displacement,self.Instruction.DisplacementSize))

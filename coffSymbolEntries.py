@@ -87,4 +87,109 @@ class coffSymbolFile(coffSymbolEntry):
         coffSymbolEntry.__init__(self,'.file\x00\x00\x00',SymbolValues.SYM_UNDEFINED,-2,
                             SymbolTypes.NULL, SymbolClass.CLASS_FILE, filename)
 
+class coffSectionDef(coffSymbolFile):
+    """
+    Section Definitions 5.5.5
+    """
+    def __init__(self,name,sectionNumber,length=0,relocs=0,line_nos=1,chksum=0,number=0,selection=0):
+        coffSymbolEntry.__init__(self,name,SymbolValues.SYM_UNDEFINED, sectionNumber,
+                            SymbolTypes.NULL, SymbolClass.STATIC)
+        self.Length = length
+        self.Relocations = relocs
+        self.LineNumbers = line_nos
+        self.Checksum=chksum
+        self.Number = number
+        self.Selection = selection
+        self.BuildAuxiliaries()
+
+    def BuildAuxiliaries(self):
+        aux = ''
+        aux += ulongToString(self.Length)
+        aux += ushortToString(self.Relocations)
+        aux += ushortToString(self.LineNumbers)
+        aux += ulongToString(self.Checksum)
+        aux += ushortToString(self.Number)
+        aux += ucharToString(self.Selection)
+        aux += "\x00\x00\x00"
+        self.Auxiliaries = aux
+
+    def RebuildAuxiliaries(self,length=0,relocs=0,line_nos=0,chksum=0,number=0,selection=0):
+        self.Length = length
+        self.Relocations = relocs
+        self.LineNumbers = line_nos
+        self.Checksum=chksum
+        self.Number = number
+        self.Selection = selection
+        self.BuildAuxiliaries()
+
+class coffFunctionDef(coffSymbolEntry):
+    def __init__(self,name,addr,sectionNumber,tag=0,size=0,line=1,fun=0):
+        coffSymbolEntry.__init__(self,name,addr, sectionNumber,
+                            0x20, SymbolClass.EXTERNAL)
+        self.TagIndex = tag
+        self.TotalSize = size
+        self.PointerToLineNumber = line
+        self.PointerToNextFunction = fun
+        
+        self.BuildAuxiliaries()
+
+    def BuildAuxiliaries(self):
+        aux = ''
+        aux += ulongToString(self.TagIndex)
+        aux += ulongToString(self.TotalSize)
+        aux += ulongToString(self.PointerToLineNumber)
+        aux += ulongToString(self.PointerToNextFunction)
+        aux += "\x00\x00"
+        self.Auxiliaries = aux
+
+    def RebuildAuxiliaries(self,tag=0,size=0,line=1,fun=0):
+        self.TagIndex = tag
+        self.TotalSize = size
+        self.PointerToLineNumber = line
+        self.PointerToNextFunction = fun
+        self.BuildAuxiliaries()
+
+class coffBf(coffSymbolEntry):
+    def __init__(self,sec,line=1,nextBf=0):
+        coffSymbolEntry.__init__(self,".bf\x00\x00\x00\x00\x00",0,sec,0x20,
+                                 101, aux="\x00" * 18)
+        self.LineNumber = line
+        self.PointerToNextBf = 0
+        self.BuildAuxiliaries()
+
+    def BuildAuxiliaries(self):
+        aux = '\x00\x00\x00\x00'
+        aux += ushortToString(self.LineNumber)
+        aux += '\x00\x00\x00\x00\x00\x00'
+        aux += ulongToString(self.PointerToNextBf)
+        aux += '\x00\x00'
+        self.Auxiliaries = aux
+
+    def RebuildAuxiliaries(self,line=1,nextBf=0):
+        self.LineNumber = line
+        self.PointerToNextBf = nextBf
+        self.BuildAuxiliaries()
+
+class coffLf(coffSymbolEntry):
+    def __init__(self,sec,lines=1):
+        coffSymbolEntry.__init__(self,".lf\x00\x00\x00\x00\x00",lines,sec,0x20,
+                                 101)
+        
+class coffEf(coffSymbolEntry):
+    def __init__(self,sec,totalSize=0,line=1,nextBf=0):
+        coffSymbolEntry.__init__(self,".ef\x00\x00\x00\x00\x00",totalSize,sec,0x20,
+                                 101,aux="\x00" * 18)
+        self.LineNumber = line
+        self.BuildAuxiliaries()
+
+    def BuildAuxiliaries(self):
+        aux = '\x00\x00\x00\x00'
+        aux += ushortToString(self.LineNumber)
+        aux += '\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
+        self.Auxiliaries = aux
+
+    def RebuildAuxiliaries(self,line=1):
+        self.LineNumber = line
+        self.BuildAuxiliaries()
+
         

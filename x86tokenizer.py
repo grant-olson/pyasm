@@ -43,7 +43,6 @@ tokLookup = {'REGISTER':REGISTER,
 #Re's
 
 # Re's used by both tokeinizers
-opcodeRe = '(?P<OPCODE>[A-Z]+)'
 commaRe = '(?P<COMMA>,)'
 
 # Instruction defs can have hard-coded indirect r/m's in them.
@@ -59,7 +58,6 @@ defRegRe = '(?P<REGISTER>%s|%s)' % (basicRegisterRe,indirectRegisterRe)
 instRegRe= '(?P<REGISTER>%s)' % (basicRegisterRe)
 
 # def specific stuff
-#operandRe = '(?P<OPERAND>[a-z/:0-9]+)'
 #TODO: fix this better
 ptrRe = 'ptr16\:16|ptr32\:32'
 memRe = 'm16\:16|m32\:32'
@@ -76,20 +74,25 @@ operandRe = '(?P<OPERAND>%s|%s|%s|%s|%s|%s|%s|%s|%s|%s)' % (ptrRe, memRe, sregRe
                                                             relativeRe, rRe, mmRe,
                                                             rmRe, otherRe)
 
+whitespaceRe = '[\s\+]'
+
+#opcode is a symbol that is all caps, no lowercase or underscore
+opcodeRe = re.compile('^[A-Z]+$')
+
 #instructionRe specific stuff
 
 lbracketRe = '(?P<LBRACKET>\[)'
 rbracketRe = '(?P<RBRACKET>\])'
 numberRe = '(?P<NUMBER>[\+\-]?(0x[0-9A-Fa-f]+|[0-9]+))'
-symbolRe = '(?P<SYMBOL>[a-z_]+)'
+symbolRe = '(?P<SYMBOL>[A-Za-z_@]+)'
 
 #define final re's
-instructionDefRe = re.compile("(?:\s*(?:%s|%s|%s|%s|%s|%s)(?P<rest>.*))" % \
-                           (defRegRe,operandRe,opcodeRe,commaRe,lbracketRe,rbracketRe))
+instructionDefRe = re.compile("(?:%s*(?:%s|%s|%s|%s|%s|%s)(?P<rest>.*))" % \
+                           (whitespaceRe,defRegRe,operandRe,symbolRe,commaRe,lbracketRe,rbracketRe))
 
-instructionRe = re.compile("(?:\s*(?:%s|%s|%s|%s|%s|%s|%s)(?P<rest>.*))" % \
-                           (lbracketRe,rbracketRe,instRegRe,
-                            opcodeRe,commaRe,numberRe,symbolRe))
+instructionRe = re.compile("(?:%s*(?:%s|%s|%s|%s|%s|%s)(?P<rest>.*))" % \
+                           (whitespaceRe,lbracketRe,rbracketRe,instRegRe,
+                            commaRe,numberRe,symbolRe))
 
 def tokenizeString(s,reToProcess):
     lst = []
@@ -101,7 +104,11 @@ def tokenizeString(s,reToProcess):
         
         instDict = instMatch.groupdict()
         if instDict['REGISTER']: lst.append((REGISTER,instDict['REGISTER']))
-        elif instDict['OPCODE']: lst.append((OPCODE,instDict['OPCODE']))
+        elif instDict['SYMBOL']:
+            if opcodeRe.match(instDict['SYMBOL']):
+                lst.append((OPCODE,instDict['SYMBOL']))
+            else:
+                lst.append((SYMBOL,instDict['SYMBOL']))
         elif instDict['COMMA']: lst.append((COMMA,instDict['COMMA']))
         elif instDict.has_key('OPERAND') and instDict['OPERAND']:
             # only defs have operands.
@@ -123,7 +130,6 @@ def tokenizeString(s,reToProcess):
         elif instDict['LBRACKET']: lst.append((LBRACKET,instDict['LBRACKET']))
         elif instDict['RBRACKET']: lst.append((RBRACKET,instDict['RBRACKET']))
         elif instDict['NUMBER']: lst.append((NUMBER,instDict['NUMBER']))
-        elif instDict['SYMBOL']: lst.append((SYMBOL,instDict['SYMBOL']))
         else:
             raise tokenizeError("Tokenization failed on string %s, match %s" \
                                   % (s,rest))
@@ -176,7 +182,7 @@ def tokenizeInst(s):
                 index += 1
             elif toks[index][0] == REGISTER:
                 index += 1
-                if toks[index][0] == NUMBER:
+                if toks[index][0] in (NUMBER,SYMBOL):
                     index += 1   
             else:
                 raise tokenizeError("Invalid Instruction: '%s'  Expected a " \

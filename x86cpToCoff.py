@@ -1,24 +1,38 @@
-from pyasm.coff import coffError, coffFile, coffSection, coffRelocationEntry, coffSymbolEntry
+from pyasm.coff import (coffError, coffFile, coffSection, coffRelocationEntry,
+                        coffSymbolEntry, coffLineNumberEntry)
 from pyasm.coffConst import *
-from pyasm.coffSymbolEntries import coffSymbolFile
+from pyasm.coffSymbolEntries import (coffSymbolFile, coffSectionDef, coffFunctionDef,
+                                     coffBf, coffLf, coffEf)
 import logging, time
+from binascii import crc32
+from x86inst import RELATIVE, DIRECT
 
 class CpToCoff:
-    def __init__(self,cp):
+    def __init__(self,cp,directives="-defaultlib:LIBC -defaultlib:OLDNAMES "):
         self.cp = cp
+        self.directives=directives
+
+        self.lastFunction = None
+        self.lastBf = None
+        self.lastEf = None
+        self.lastEfPos = 0
         
         c = coffFile()
         c.MachineType = coffFile.I386MAGIC
 
         self.coff = c        
         
-    def linkDirectiveSection(self, directives="-defaultlib: LIBC -defaultlib:OLDNAMES "):
+    def linkDirectiveSection(self):
         sect = coffSection()
         sect.Name = '.drectve'
-        sect.Flages = Flags = (SectionFlags.LNK_REMOVE |
+        sect.Flags = (SectionFlags.LNK_REMOVE |
                     SectionFlags.LNK_INFO |
                     SectionFlags.ALIGN_1BYTES)
-        sect.RawData = directives
+        sect.RawData = self.directives
+
+        sym = self.coff.Symbols.GetSymbol('.drectve')
+        sym.RebuildAuxiliaries(len(sect.RawData),0,0,crc32(sect.RawData),0,0)
+        
         return sect
 
     def textSection(self):
@@ -34,14 +48,30 @@ class CpToCoff:
         for patchin in self.cp.CodePatchins:
             # How do I tell what type it is?
             addr = patchin[1]
+            if patchin[2] == DIRECT:
+                patchinType = RelocationTypes.I386_DIR32
+            elif patchin[2] == RELATIVE:
+                patchinType = RelocationTypes.I386_REL32
+            else:
+                raise RuntimeError("Invalid patchin type")
+            
             try:
                 loc = self.coff.Symbols.GetLocation(patchin[0])
-                r = coffRelocationEntry(addr,loc,typ=RelocationTypes.I386_DIR32)
+                r = coffRelocationEntry(addr,loc,typ=patchinType)
             except coffError:
-                r = coffRelocationEntry(addr,0x0,typ=RelocationTypes.I386_DIR32)
+                r = coffRelocationEntry(addr,0x0,typ=patchinType)
             
             sect.RelocationData.append(r)
 
+        sym = self.coff.Symbols.GetSymbol('.text\x00\x00\x00')
+        sym.RebuildAuxiliaries(len(sect.RawData),len(self.cp.CodePatchins),0,
+                               crc32(sect.RawData),0,0)
+
+        # attempt to add line numbers
+        for sym in self.cp.CodeSymbols:
+            symLoc = self.coff.Symbols.GetLocation(sym[0])
+            sect.LineNumberData.append(coffLineNumberEntry(symLoc,0x0))
+            
         return sect        
 
     def dataSection(self):
@@ -53,6 +83,24 @@ class CpToCoff:
                     SectionFlags.MEM_READ |
                     SectionFlags.ALIGN_4BYTES)
         sect.RawData = self.cp.Data
+
+        sym = self.coff.Symbols.GetSymbol('.data\x00\x00\x00')
+        sym.RebuildAuxiliaries(len(sect.RawData),0,0,crc32(sect.RawData),0,0)
+        
+        return sect
+
+    def rdataSection(self):
+        sect = coffSection()
+        sect.Name = '.rdata\x00\x00'
+        sect.Flags = (SectionFlags.LNK_COMDAT |
+                    SectionFlags.CNT_INITIALIZED_DATA |
+                    SectionFlags.MEM_READ |
+                    SectionFlags.ALIGN_4BYTES)
+        sect.RawData = self.cp.Data
+
+        sym = self.coff.Symbols.GetSymbol('.rdata\x00\x00')
+        sym.RebuildAuxiliaries(len(sect.RawData),0,0,crc32(sect.RawData),0,0)
+        
         return sect
         
     def debugF_Section(self):
@@ -75,28 +123,64 @@ class CpToCoff:
 
     def addSymbol(self,name,val,sec,typ,cls,aux=''):
         self.coff.AddSymbol(name,val,sec,typ,cls,aux)
+
+    def addFunctionSymbols(self,sym,section):
+        """
+        A function actually has 4 symbol entries:
+            + the function entry
+            + the BeginFunction(.bf) entry
+            + the LinesInFunction(.lf) entry
+            + the EndFunction(.ef) entry
+        """
+        
+        fun = coffFunctionDef(sym[0],sym[1],2)
+        self.coff.AddExistingSymbol(fun)
+        if self.lastFunction:
+            self.lastFunction.PointerToNextFunction = fun.Location
+            self.lastFunction.TotalSize = fun.Value - self.lastFunction.Value
+            self.lastFunction.BuildAuxiliaries()
+        self.lastFunction = fun
+        
+        bf = coffBf(2)
+        self.coff.AddExistingSymbol(bf)
+        if self.lastBf:
+            self.lastBf.PointerToNextFunction = bf
+            self.lastBf.BuildAuxiliaries()
+        self.lastBf = bf
+
+        fun.TagIndex = bf.Location
+        fun.BuildAuxiliaries()
+        
+        lf = coffLf(2)
+        self.coff.AddExistingSymbol(lf)
+
+        ef = coffEf(2)
+        self.coff.AddExistingSymbol(ef)
+        if self.lastEf:
+            self.lastEf.Value = sym[1] - self.lastEfPos
+        self.lastEf = ef
+        self.lastEfPos = sym[1]
         
     def addSymbols(self):
         self.coff.AddExistingSymbol(coffSymbolFile('C:\\objtest\\objtest\\objtest.cpp'))
         
         self.addSymbol('@comp.id',0xB2306, -1, SymbolTypes.NULL, SymbolClass.STATIC)
 
-        self.addSymbol('.drectve', SymbolValues.SYM_UNDEFINED, 1, SymbolTypes.NULL,
-                            SymbolClass.STATIC,
-                       '&\x00\x00\x00\x00\x00\x00\x00O\xe0\xad\x98\x00\x00\x00\x00\x00\x00')
-
-        self.addSymbol('.text\x00\x00\x00', SymbolValues.SYM_UNDEFINED, 2,
-                            SymbolTypes.NULL, SymbolClass.STATIC,
-        "\x00" * 18)
-        #Stub for auxialary here.
+        self.coff.AddExistingSymbol(coffSectionDef('.drectve',1))
+        self.coff.AddExistingSymbol(coffSectionDef('.text\x00\x00\x00',2))
+        self.coff.AddExistingSymbol(coffSectionDef('.data\x00\x00\x00',3))
 
         for sym in self.cp.CodeSymbols:
-            self.addSymbol(sym[0], SymbolValues.SYM_ABSOLUTE, 2, 0x20,
-                                SymbolClass.EXTERNAL)
+            self.addFunctionSymbols(sym,2)
+
+        #sizes for last function
+        totalSize = len(self.cp.Code)
+        self.lastFunction.TotalSize = totalSize - self.lastFunction.Value
+        self.lastFunction.BuildAuxiliaries()
+        self.lastEf.Value = totalSize - self.lastEfPos
 
         for sym in self.cp.DataSymbols:
-            self.addSymbol(sym[0], SymbolValues.SYM_UNDEFINED, 3, 0x20,
-                                SymbolClass.EXTERNAL)
+            self.addSymbol(sym[0], sym[1],3,0x20,SymbolClass.EXTERNAL)
 
         #resolve external label references here
         for patchin in self.cp.CodePatchins:
@@ -106,14 +190,6 @@ class CpToCoff:
                 # no symble entry, add ref
                 self.addSymbol(patchin[0], SymbolValues.SYM_UNDEFINED, 0, 0x20,
                                SymbolClass.EXTERNAL)
-
-        self.addSymbol('.data\x00\x00\x00', SymbolValues.SYM_UNDEFINED, 3,
-                            SymbolTypes.NULL, SymbolClass.STATIC,
-                       '\x0e\x00\x00\x00\x00\x00\x00\x00\xfe,\xa6\xfb\x00\x00\x02\x00\x00\x00')
-
-        self.addSymbol('.debug$F', SymbolValues.SYM_UNDEFINED, 4, SymbolTypes.NULL,
-                            SymbolClass.STATIC,
-                       '\x10\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x02\x00\x05\x00\x00\x00')
 
         self.coff.Symbols.SetLocations()
 
@@ -127,7 +203,6 @@ class CpToCoff:
         self.coff.Sections.append(self.linkDirectiveSection())
         self.coff.Sections.append(self.textSection())
         self.coff.Sections.append(self.dataSection())
-        #Do Debug$F after we figure out how it works
         #c.Sections.append(self.DebugF_Section())
 
         self.coff.SetSizes()

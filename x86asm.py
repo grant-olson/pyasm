@@ -39,14 +39,25 @@ def possibleDefault(*toks):
 
 def possibleImmediateOrRelative(*toks):
     # TODO: can we narrow down which one this should be?
-    immediateVals = ['imm32','imm16','imm8','rel32','rel16','rel8']
+    immVals = ['imm32','imm16']
+    relVals = ['rel32','rel16']
     first,rest = toks[0],toks[1:]
+
+    #if it's 8 bit, try to grab smaller opcode
+    if first[0] == NUMBER:
+        num = eval(first[1])
+        if num >= -127 and num <= 128:
+            immVals.insert(0,'imm8')
+            relVals.insert(0,'rel8')
+
+    vals = immVals + relVals    
+    
     if not rest:
-        for val in immediateVals:
+        for val in vals:
             yield [(OPERAND, val)]
     else:
         possibleLookup = getProperLookup(*rest)
-        for val in immediateVals:
+        for val in vals:
             for restMatches in possibleLookup(*rest):
                 yldVal = [(OPERAND,val)]
                 yldVal.extend(restMatches)
@@ -180,6 +191,13 @@ class labelDict(dict):
         else:
             dict.__setitem__(self,key,val)
 
+class constDict(dict):
+    def __setitem__(self,key,val):
+        if self.has_key(key):
+            raise x86asmError("Duplicate Constant Declaration '%s'" % key)
+        else:
+            dict.__setitem__(self,key, (NUMBER,val) )
+            
 class data:
     def __init__(self,name,dat,size=0):
         self.Name = name
@@ -194,16 +212,20 @@ class codePackage:
         self.CodePatchins = []
         self.Data = ''
         self.DataSymbols = []
-        
+
+STDCALL, CDECL = range(1,3)
+
 class procedure:
-    def __init__(self,name):
+    def __init__(self,name, typ=STDCALL):
         self.Name = name
         self.Address = 0x0
+
+        self.Type = typ     
         
         self.Args = []
-        self.ArgOffset = 4
+        self.ArgOffset = 8
         self.Locals = []
-        self.LocalOffset = 4
+        self.LocalOffset = 0
         self.Frozen = 0
         
     def AddArg(self,name,bytes=4):
@@ -232,7 +254,7 @@ class procedure:
     def LookupLocal(self,name):
         for x in self.Locals:
             if x[0] == name:
-                return ( (LBRACKET, '['), (REGISTER,'EBP'),(NUMBER, str(-x[1])),
+                return ( (LBRACKET, '['), (REGISTER,'EBP'),(NUMBER, str(-(x[1]+4))),
                          (RBRACKET,']') )
         return None
        
@@ -250,23 +272,36 @@ class procedure:
         """
         a.AI("PUSH EBP")
         a.AI("MOV EBP, ESP")
-        a.AI("SUB ESP, %s" % self.LocalOffset)
+        if self.LocalOffset:
+            a.AI("SUB ESP, %s" % self.LocalOffset)
 
     def EmitProcEndCode(self, a):
         """
         Restore settings and RETurn
         TODO: Do we need to handle a Return value here?
         """
-        a.AI("ADD ESP, %s" % self.LocalOffset)
+        if self.LocalOffset:
+            a.AI("ADD ESP, %s" % self.LocalOffset)
+
+        #check for malformed stack
+        #a.AI("CMP         EBP,ESP")
+        #a.AI("CALL        __chkesp")
+        
         a.AI("MOV ESP, EBP")
         a.AI("POP EBP")
-        a.AI("RET")
+        
+        if self.Type == STDCALL and self.ArgOffset - 8:
+            #HAD ARGS AND IS A STDCALL, CLEANUP
+            a.AI("RET %s" % (self.ArgOffset - 8))
+        else:
+            a.AI("RET")
         
 class assembler:
     def __init__(self):
         self.Instructions = []
         self.Data = []
         self.Labels = {}
+        self.Constants = constDict()
         self.CurrentProcedure = None
         self.StartAddress = 0x0
         self.DataStartAddress = 0x0
@@ -283,18 +318,22 @@ class assembler:
     def AddInstruction(self,inst):
         instToks = tokenizeInst(inst)
         instToksMinusLocals = ()
-        if self.CurrentProcedure: # may have locals
-            for tok in instToks:
-                if tok[0] != SYMBOL: # do nothing
-                    instToksMinusLocals += ( tok,)
-                else: #look for local match
-                    local = self.CurrentProcedure.LookupVar(tok[1])
-                    if local: #found match
-                        instToksMinusLocals += local
-                    else: # defer resolution to second pass
-                        instToksMinusLocals += (tok,)
-        else: # no locals, don't try to substitute
-            instToksMinusLocals = instToks
+
+        for tok in instToks:
+            if tok[0] != SYMBOL: # do nothing
+                instToksMinusLocals += ( tok,)
+            elif self.Constants.has_key(tok[1]): #replace constant
+                instToksMinusLocals += (self.Constants[tok[1]],)
+            elif self.CurrentProcedure:
+                #look for local match
+                local = self.CurrentProcedure.LookupVar(tok[1])
+                if local: #found match
+                    instToksMinusLocals += local
+                else: # defer resolution to second pass
+                    instToksMinusLocals += (tok,)
+            else: # stick with local
+                instToksMinusLocals = instToks
+            
         self.Instructions.append(instToksMinusLocals)
 
     def AI(self,inst):
@@ -320,15 +359,15 @@ class assembler:
     def ADStr(self,name,dat):
         self.AddData(name,dat)
 
-    def AddProcedure(self,name):
+    def AddProcedure(self,name,typ=STDCALL):
         if self.CurrentProcedure: # didn't emit procedure cleanup code
             raise x86asmError("Must end procedure '%s' before starting proc " \
                               " '%s'" % (self.CurrentProcedure.Name, name))
-        proc = procedure(name)
-        self.registerLabel(proc)
+        self.AddInstructionLabel(name)
+        proc = procedure(name,typ)  
         self.CurrentProcedure = proc
 
-    def AP(self,name):
+    def AP(self,name,typ=STDCALL):
         self.AddProcedure(name)
 
     def AddArgument(self,name):
@@ -347,7 +386,13 @@ class assembler:
 
     def EP(self):
         self.EndProc()
-            
+
+    def AddConstant(self,name,val):
+        self.Constants[name] = val
+
+    def AC(self,name,val):
+        self.AddConstant(name,val)
+        
     #
     # end write assembly code
     #
@@ -383,6 +428,7 @@ class assembler:
             currentAddress += d.Size            
         cp.Code = ''.join([i.OpDataAsString() for i in newInsts])
         cp.Data = ''.join([d for d in newData])
+
         return cp
             
             
