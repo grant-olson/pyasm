@@ -1,9 +1,9 @@
 +++++++++++++++++++++++++
-PyASM User's Guide V. 0.3
+PyASM User's Guide V. 0.2
 +++++++++++++++++++++++++
 
-by Grant Olson
-++++++++++++++
+by Grant Olson <olsongt at verizon.net>
++++++++++++++++++++++++++++++++++++++++
 
 ============
 Introduction
@@ -21,14 +21,18 @@ PyASM requires python 2.4 or later.  To the best of my knowledge, the only 2.4 s
 
 Linux Install:
 
-    + Download and extract pyasm-0.2.tar
+    + Download and extract pyasm-0.2.tar.gz_
     + python setup.py install
 
 Windows Install:
 
-    + Download and run pyasm-0.2.exe
-    + A source distribution pyasm-0.2.zip is available, but you'll need VS7.0 to 
+    + Download and run pyasm-0.2.win32-py2.4.exe_
+    + A source distribution pyasm-0.2.zip_ is available, but you'll need VS7.0 to 
       compile the excmem module.
+
+.. _pyasm-0.2.tar.gz: http://mysite.verizon.net/olsongt/pyasm-0.2.tar.gz
+.. _pyasm-0.2.win32-py2.4.exe: http://mysite.verizon.net/olsongt/pyasm-0.2.win32-py2.4.exe
+.. _pyasm-0.2.zip: http://mysite.verizon.net/olsongt/pyasm-0.2.zip
 
 ------------
 Hello World!
@@ -37,7 +41,8 @@ Hello World!
 A simple Windows version of a hello_world.py program is as follows::
 
   #
-  # NEW SYNTAX
+  # Hello World in assembly:  pyasm/examples/hello_World.py
+  #
   #
 
   from pyasm import pyasm
@@ -84,36 +89,6 @@ This creates a procedure called hello_world that would have the C signature of `
 
   7. Calling hello_world() executes the newly created function.
 
-  #
-  # OLD SYNTAX
-  # 
-
-  import pyasm.winmem
-  from pyasm.x86asm import assembler, CDECL
-  from pyasm.x86cpToMemory import CpToMemory
-
-  nonePointer = id(None)
-
-  a = assembler() #initiate assembled
-
-  a.ADStr("hello_world", "Hello world!\n\0") #Allocate string data
-
-  a.AP("test_print", CDECL) # Begin a function assembly style
-  a.AddParam("self")
-  a.AddParam("args")
-  a.AI("PUSH hello_world")
-  a.AI("CALL PySys_WriteStdout")
-  a.AI("MOV EAX,%s" % nonePointer)
-  a.AI("ADD [EAX],0x1")
-  a.EP() #end function
-
-
-  mem = CpToMemory(a.Compile(),pyasm.winmem) #transform from assembly to machine code
-  mem.MakeMemory() #Load machine code into memory
-  mem.BindPythonFunctions(globals()) #bind function to module global namespace
-
-  test_print() # Automagically calls the assembly code now.
-
 
 ==============
 Everyday usage
@@ -128,7 +103,6 @@ Like most assemblers, the command-line assembler contains a very simple parser. 
 Additional notes specific to this assembler are as follows:
 
   + Numbers use python's formatting scheme, so hex is represented as 0xFF and not FFh.
-  + We also use python-style comments.  Anything after a # sign is discarded by the assembler.
 
 Instruction Statements
 ----------------------
@@ -231,7 +205,9 @@ calling pyasm is fine if you're just trying to inline some assembly functions, b
 Command-line assembler
 ----------------------
 
-If you really want to, a command-line asembler is avaialble for usage.  Usage is straightforward::
+**NOT IMPLEMENTED YET**
+
+If you really want to, a command-line asembler is available for usage.  Usage is straightforward::
 
     python pyassemble.py asmfile.asm
 
