@@ -8,11 +8,11 @@ So far I can build a standard coff file but still need an external linker to
 make an exe.
 """
 
-import sys
+import logging, sys
 from coffConst import *
 from x86PackUnpack import *
 
-
+class coffError(Exception):pass
 
 def attemptNameLookup(const,id): return const.get(id, "UNDEF??[%0X]" % id)
 
@@ -36,7 +36,7 @@ def charsAsBinDump(chars, address = 0):
         head,tail = tail[:16], tail[16:]
 
 class coffSymbolEntry:
-    def __init__(self,name="",value=0x0,sec=0x0,typ=0x0,cls=0x0,aux=''):
+    def __init__(self,name="",value=0x0,sec=0x0,typ=0x0,cls=0x0,aux='',fullname=None):
         self.Name = name
         self.Value = value
         self.SectionNumber = sec
@@ -44,6 +44,11 @@ class coffSymbolEntry:
         self.StorageClass = cls
         self.NumberAuxiliary = 0x0
         self.Auxiliaries = aux
+        self.Location = 0
+        if fullname:
+            self.Fullname = fullname
+        else:
+            self.Fullname = name
 
     def InitFromFile(self,f):
         self.Name = stringFromFile(8,f)
@@ -71,7 +76,9 @@ class coffSymbolEntry:
     def SetSizes(self):
         assert not len(self.Auxiliaries) % 18, "Invalid Aux length"
         self.NumberAuxiliaries =  (len(self.Auxiliaries) // 18)
+        
     def Rows(self):
+        self.SetSizes()
         return self.NumberAuxiliaries + 1
 
     def DumpInfo(self):
@@ -107,6 +114,19 @@ class coffSymbolList(list):
     def WriteToFile(self, f):
         for sym in self:
             sym.WriteToFile(f)
+
+    def SetLocations(self):
+        start = 0
+        for sym in self:
+            sym.Location = start
+            start += sym.Rows()
+
+    def GetLocation(self,symbolName):
+        for sym in self:
+            if sym.Fullname == symbolName:
+                return sym.Location
+        raise coffError("Couldn't find symbol '%s'" % symbolName)
+            
             
 class coffLineNumberEntry:
     def __init__(self,sym=0x0,num=0x0):
@@ -389,13 +409,14 @@ class coffFile:
         self.SymbolTableLoc = offset
         
     def AddSymbol(self,name="",value=0x0,sec=0x0,typ=0x0,cls=0x0,aux=''):
+        fullname = name
         if len(name) > 8: #add name to symbol table and reference
             if name[-1] != '\x00':
                 name += '\x00'
             pos = len(self.StringTable) + 4
             self.StringTable += name
             name = '\x00\x00\x00\x00' + ulongToString(pos)        
-        self.Symbols.append(coffSymbolEntry(name,value,sec,typ,cls,aux))    
+        self.Symbols.append(coffSymbolEntry(name,value,sec,typ,cls,aux,fullname))    
     
     def DumpInfo(self):
         print "Machine Type: %s" % self.MachineType

@@ -1,4 +1,4 @@
-from pyasm.coff import coffFile, coffSection, coffRelocationEntry, coffSymbolEntry
+from pyasm.coff import coffError, coffFile, coffSection, coffRelocationEntry, coffSymbolEntry
 from pyasm.coffConst import *
 import time
 
@@ -30,9 +30,15 @@ class CpToCoff:
                     SectionFlags.ALIGN_16BYTES)
         sect.RawData = self.cp.Code
 
-        for patching in self.cp.CodePatchins:
+        for patchin in self.cp.CodePatchins:
             # How do I tell what type it is?
-            r = coffRelocationEntry(addr=0x1,sym=0xC,typ=RelocationTypes.I386_DIR32)
+            addr = patchin[1]
+            try:
+                loc = self.coff.Symbols.GetLocation(patchin[0])
+                r = coffRelocationEntry(addr,loc,typ=RelocationTypes.I386_DIR32)
+            except coffError:
+                r = coffRelocationEntry(addr,0x0,typ=RelocationTypes.I386_DIR32)
+            
             sect.RelocationData.append(r)
 
         return sect        
@@ -104,7 +110,7 @@ class CpToCoff:
                             SymbolClass.STATIC,
                        '\x10\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x02\x00\x05\x00\x00\x00')
 
-
+        self.coff.Symbols.SetLocations()
 
         
     def makeReleaseCoff(self):
