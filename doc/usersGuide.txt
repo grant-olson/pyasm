@@ -42,7 +42,7 @@ A simple Windows version of a hello_world.py program is as follows::
 
   from pyasm import pyasm
 
-  pyasm(globals(),"""
+  pyasm(globals(),r"""
      !CHARS hello_str 'Hello world!\n\0'
 
      !PROC hello_world PYTHON
