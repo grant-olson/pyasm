@@ -85,6 +85,14 @@ class assemblerTests(unittest.TestCase):
         a.AI("MOV bar, 4")
         self.failUnlessRaises(x86asmError,a.AddLocal,"baz")
         a.EP()
+
+    def test_constants(self):
+        a = assembler()
+        a.AC("foo","0x4")
+        a.AI("MOV EBX,[EAX+foo]")
+        self.assertEquals(a.Instructions,[((2, 'MOV'), (1, 'EBX'), (3, ','),
+                                            (5, '['), (1, 'EAX'), (7, '0x4'),
+                                            (6, ']'))])
         
 if __name__ == '__main__':
     unittest.main()

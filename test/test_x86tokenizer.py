@@ -47,21 +47,34 @@ class x86tokenizer_test(unittest.TestCase):
                            (RBRACKET, ']'), (COMMA, ','), (NUMBER, '12')))
         self.assertEquals(tokenizeInst('MOV [EAX+0xCC],12'),
                           ((OPCODE, 'MOV'), (LBRACKET, '['), (REGISTER, 'EAX'),
-                           (NUMBER, '+0xCC'),(RBRACKET, ']'), (COMMA, ','),
+                           (NUMBER, '0xCC'),(RBRACKET, ']'), (COMMA, ','),
                            (NUMBER, '12')))
         self.assertEquals(tokenizeInst('MOV [EAX+12],12'),
                           ((OPCODE, 'MOV'), (LBRACKET, '['), (REGISTER, 'EAX'),
-                           (NUMBER, '+12'), (RBRACKET, ']'), (COMMA, ','),
+                           (NUMBER, '12'), (RBRACKET, ']'), (COMMA, ','),
                            (NUMBER, '12')))
         self.assertEquals(tokenizeInst('RET'),((OPCODE, 'RET'),))
         self.failUnlessRaises(tokenizeError, tokenizeInst,'MOV EAX,r/m8')
 
+
+    def test_mixed_case_symbols(self):
+        self.assertEquals(tokenizeInst('RET'),((OPCODE, 'RET'),))
+        self.assertEquals(tokenizeInst('RET RETurn'),((OPCODE, 'RET'),(SYMBOL, 'RETurn'),))
+        self.assertEquals(tokenizeInst('RET _RET'),((OPCODE, 'RET'),(SYMBOL, '_RET'),))
+        self.assertEquals(tokenizeInst('RET RET_URN'),((OPCODE, 'RET'),(SYMBOL, 'RET_URN'),))
+        
     def test_InstVerification(self):
         self.failUnlessRaises(tokenizeError,tokenizeInst,"MOV [EAX,12],12")
         self.failUnlessRaises(tokenizeError,tokenizeInst,"MOV ,EAX,12")
         self.failUnlessRaises(tokenizeError,tokenizeInst,"MOV [EAX+12+13],12")
         self.failUnlessRaises(tokenizeError,tokenizeInst,"MOV [[EAX,12],12")
         self.failUnlessRaises(tokenizeError,tokenizeInst,"MOV [EAX,12,12")
+
+    def test_constant(self):
+        self.assertEquals(tokenizeInst("MOV [EAX+foo],0x3"),((2, 'MOV'),(5, '['),
+                                                             (1, 'EAX'),
+                                                 (8, 'foo'), (6, ']'), (3, ','),
+                                                 (7, '0x3')))
 if __name__ == '__main__':
     unittest.main()
 

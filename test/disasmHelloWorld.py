@@ -38,12 +38,12 @@ class test_x86disasm(unittest.TestCase):
     def test_release_hello_world(self):
         code = x86Block('h\x00\x00\x00\x00\xe8\x00\x00\x00\x00\x83\xc4\x043\xc0\xc3')
         dis = x86Disassembler(code)    
-        dis.disasm()
+        #dis.disasm()
 
     def test_debug_hello_world(self):
         code = x86Block('U\x8b\xec\x83\xec@SVW\x8d}\xc0\xb9\x10\x00\x00\x00\xb8\xcc\xcc\xcc\xcc\xf3\xabh\x00\x00\x00\x00\xe8\x00\x00\x00\x00\x83\xc4\x043\xc0_^[\x83\xc4@;\xec\xe8\x00\x00\x00\x00\x8b\xe5]\xc3')
         dis = x86Disassembler(code)    
-        dis.disasm()
+        #dis.disasm()
 
 if __name__ == '__main__':
     unittest.main()

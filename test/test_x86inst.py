@@ -18,6 +18,19 @@ class test_concrete_value_resolution(unittest.TestCase):
 
         a.Compile()   
 
+class test_digit_flag(unittest.TestCase):
+    def test_sub_flag(self):
+        """
+        Make sure we set the appropriate 'digit' flag for instructions that have it.
+        I'm cheating a little in this test because we'll eventually optimize to find the
+        imm8 version of the instruction, but I'm not doing that yet.
+        """
+        i = findBestMatch("SUB ESP,0x40")
+        ii = i.GetInstance()
+        ii.LoadConcreteValues(tokenizeInst("SUB ESP,0x40"))
+        s = ii.OpDataAsString()
+        self.assertEqual(s,"\x83\xec\x40")
+
 class test_text_generation(unittest.TestCase):
     def test_ModRM_calculation(self):
         "wasn't calculating this properly.  Added an extra 00 to some text output"
@@ -30,7 +43,6 @@ class test_text_generation(unittest.TestCase):
         m = findBestMatch("MOV EAX,0xCCCCCCCC")
         i = m.GetInstance()
         i.LoadConcreteValues("MOV EAX,0xCCCCCCCC")
-        print i.OpText()
         self.assertEqual(i.OpText(),
                          '  00000000: B8 CC CC CC CC          MOV       EAX,0xCCCCCCCC')
     

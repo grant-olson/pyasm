@@ -1,6 +1,6 @@
 from pyasm.coff import coffFile, coffSection, coffRelocationEntry, coffSymbolEntry
 from pyasm.coffConst import *
-import time
+import time,os
 
 """Creates a simple .objfile that should be good enough to
 link as a hello world program"""
@@ -105,9 +105,13 @@ c.StringTable = '??_C@_0O@FEEI@Hello?5World?$CB?6?$AA@\x00'
 c.SetSizes()
 c.SetOffsets()
 
-c.DumpInfo()
+#c.DumpInfo()
 
-f = file("rawHelloWorld.obj","wb")
+f = file("output/rawHelloWorld.obj","wb")
 c.WriteToFile(f)
 f.close()
+
+os.system("cd output && link rawHelloWorld.obj")
+
+os.system("cd output && rawHelloWorld.exe")
 

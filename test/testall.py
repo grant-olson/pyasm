@@ -10,6 +10,10 @@ from disasmHelloWorld import *
 from test_x86asm import *
 from test_x86inst import *
 from test_x86tokenizer import *
+from test_object_creation import *
+from test_bugs import *
+from test_variables import *
+
 
 if __name__ == "__main__":
     unittest.main()

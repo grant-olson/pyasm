@@ -34,9 +34,13 @@ _main:
 from pyasm.x86asm import assembler
 from pyasm.x86cpToCoff import CpToCoff
 import unittest
+import os, logging
 
-class test_object_creation(unittest.TestCase):
-    def test_object_creation(self):
+linkCmd = "cd output && link /DEBUG /OPT:REF /OPT:ICF %s"
+
+class test_object_creation(unittest.TestCase):     
+        
+    def test_hello_world(self):
         a = assembler()
 
         a.ADStr('hello_world','Hello, World\n\0')
@@ -67,19 +71,99 @@ class test_object_creation(unittest.TestCase):
         a.ADStr("goodbye_world", "GOODBYE WORLD!\n\0")
 
         cp = a.Compile()
-        
-        self.assertEquals(cp.Code,'U\x8b\xec\x81\xc4@\x00\x00\x00SVW\x8d\xbd\xc0\xb9\x10\x00\x00\x00\xb8\xcc\xcc\xcc\xcc\xf3\xabh\x00\x00\x00\x00\xe8\x00\x00\x00\x00\x81\xc4\x04\x00\x00\x003\xc0_^[\x81\xc4@\x00\x00\x00;\xec\xe8\x00\x00\x00\x00\x8b\xe5]\xc3')
-        self.assertEquals(cp.CodePatchins,[('hello_world', 28), ('_printf', 33), ('__chkesp', 57)])
+       
+        self.assertEquals(cp.Code,'U\x8b\xec\x83\xec@SVW\x8d}\xc0\xb9\x10\x00\x00\x00\xb8\xcc\xcc\xcc\xcc\xf3\xabh\x00\x00\x00\x00\xe8\x00\x00\x00\x00\x83\xc4\x043\xc0_^[\x83\xc4@;\xec\xe8\x00\x00\x00\x00\x8b\xe5]\xc3')
+        self.assertEquals(cp.CodePatchins,[('hello_world', 25, 2), ('_printf', 30, 1), ('__chkesp', 48, 1)])
         self.assertEquals(cp.CodeSymbols,[('_main', 0)])
         self.assertEquals(cp.Data,'Hello, World\n\x00GOODBYE WORLD!\n\x00')
         self.assertEquals(cp.DataSymbols,[('hello_world', 0), ('goodbye_world', 14)])
 
-        coff = CpToCoff(cp).makeReleaseCoff()
+        coff = CpToCoff(cp,"-defaultlib:LIBCPD -defaultlib:LIBCD -defaultlib:OLDNAMES ").makeReleaseCoff()
 
-        f = file("./objCreate.obj","wb")
+        f = file("output/testHelloWorld.obj","wb")
         coff.WriteToFile(f)
         f.close()
+
+        self.assertEquals(os.system(linkCmd % "testHelloWorld.obj"),0)
+        self.assertEquals(os.popen("cd output && testHelloWorld.exe").read(),"Hello, World\n")       
+
+    def test_proc(self):
+        a = assembler()
+
+        a.ADStr('hello_world','Hello, World\n\0')
+        a.AP("_main")
+        a.AI("PUSH hello_world")
+        a.AI("CALL _printf")
+        a.AI("ADD ESP,0x4") # _cdecl cleanup
+        a.AI("XOR EAX,EAX")
+        a.EP()
+
+        cp = a.Compile()
+        coff = CpToCoff(cp,"-defaultlib:LIBCPD -defaultlib:LIBCD -defaultlib:OLDNAMES ").makeReleaseCoff()
+        f = file("output/testProc.obj","wb")
+        coff.WriteToFile(f)
+        f.close()
+
+        self.assertEquals(os.system(linkCmd % "testProc.obj"), 0)
+        self.assertEquals(os.popen("cd output && testProc.exe").read(), "Hello, World\n")
+
+    def test_goodbye_world(self):
+        """
+        Make sure we see the second param instead of defaulting to the first
+        """
+        a = assembler()
+
+        a.ADStr('hello_world','Hello, World\n\0')
+        a.ADStr('Goodbye_World','Goodbye, World\n\0')
+        a.AP("_main")
+        a.AI("PUSH Goodbye_World")
+        a.AI("CALL _printf")
+        a.AI("ADD ESP,0x4") # _cdecl
+        a.AI("XOR EAX,EAX")
+        a.EP()
+
+        cp = a.Compile()
+        coff = CpToCoff(cp,"-defaultlib:LIBCPD -defaultlib:LIBCD -defaultlib:OLDNAMES ").makeReleaseCoff()
+        f = file("output/testGoodbyeWorld.obj","wb")
+        coff.WriteToFile(f)
+        f.close()
+
+        self.assertEquals(os.system(linkCmd % "testGoodbyeWorld.obj"), 0) 
+        self.assertEquals(os.popen("cd output &&testGoodbyeWorld.exe").read(), "Goodbye, World\n")
+
+    def test_two_procs(self):
+        """
+        Make sure second proc gets called correctly
+        """
+        a = assembler()
+
+        a.ADStr('hello_planets','Hello, all %i planets!\n\0')
+
+        a.AP("_main")
+        a.AI("CALL get_planets")
+        a.AI("PUSH EAX")
+        a.AI("PUSH hello_planets")
+        a.AI("CALL _printf")
+        a.AI("ADD ESP,0x8") #printf is _cdecl
+        a.AI("XOR EAX,EAX")
+        a.EP()
+
+        #get_planets proc
+        a.AP("get_planets")
+        a.AI("MOV EAX,0x12")
+        a.EP()
+
+        cp = a.Compile()
         
+        coff = CpToCoff(cp,"-defaultlib:LIBCPD -defaultlib:LIBCD -defaultlib:OLDNAMES ").makeReleaseCoff()
+        f = file("output/testTwoProcs.obj","wb")
+        coff.WriteToFile(f)
+        f.close()
+
+        self.assertEquals(os.system(linkCmd % "testTwoProcs.obj"), 0)
+        self.assertEquals(os.popen("cd output && testTwoProcs.exe").read(),
+                          "Hello, all 18 planets!\n")
+                
 if __name__ == '__main__':
     unittest.main()
     
