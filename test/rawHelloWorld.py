@@ -2,6 +2,9 @@ from pyasm.coff import coffFile, coffSection, coffRelocationEntry, coffSymbolEnt
 from pyasm.coffConst import *
 import time
 
+"""Creates a simple .objfile that should be good enough to
+link as a hello world program"""
+
 c = coffFile()
 
 c.MachineType = coffFile.I386MAGIC
