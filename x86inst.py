@@ -1,7 +1,4 @@
 #
-# TODO: PRoperly deal with +rb,+rw,+rd
-# TODO: Decode ModRM info
-# TODO: Use OpcodeDef to figure out things instead of scanning string
 # TODO: Fix 'mo'
 #
 
@@ -103,6 +100,11 @@ regOpcode = {
     'REG':[0,1,2,3,4,5,6,7],
     }
 
+mode1 = ['[EAX]','[ECX]','[EDX]','[EBX]','[--][--]','disp32','[ESI]','[EDI]']
+mode2 = ['[EAX]+disp8','[ECX]+disp8','[EDX]+disp8','[EBX]+disp8',
+         '[--][--]+disp8','[EBP]+disp8','[ESI]+disp8','[EDI]+disp8']
+mode3 = ['[EAX]+disp8','[ECX]+disp8','[EDX]+disp8','[EBX]+disp8',
+         '[--][--]+disp8','[EBP]+disp8','[ESI]+disp8','[EDI]+disp8']
 
 class ModRM:
     def __init__(self,byte=None):
@@ -128,11 +130,37 @@ class ModRM:
         else:
             return False
 
+    def RegOpString(self,typ):
+        return regOpcode[typ][self.RegOp]
+
+    def RMString(self,typ=None):
+        retVal = ""
+        if self.Mode == 0:
+            retVal = mode1[self.RM]
+        elif self.Mode == 1:
+            retVal = mode2[self.RM]
+        elif self.Mode == 2:
+            retVal = mode3[self.RM]
+        elif self.Mode == 3:
+            if typ == 'r/m8':
+                retVal = regOpcode['r8'][self.RM]
+            elif typ == 'r/m16':
+                retVal = regOpcode['r16'][self.RM]
+            elif typ == 'r/m32':
+                retVal = regOpcode['r32'][self.RM]
+            else:
+                raise RuntimeError("Invalid r/m type")
+        else:
+            raise RuntimeError("Invalid Mode")
+        return retVal
+            
 opcodeRe = '(?P<opcode>[A-Z]+)'
 operandRe = '(?P<operand>[a-z/:0-9]+)'
 commaRe = '(?P<comma>[,]+)'
-regRe = '(?P<register>AL|CL|DL|BL|AH|CH|DH|BH|AX|CX|DX|BX|SP|BP|SI|DI|EAX|ECX|EDX|EBX|ESP|EBP|ESI|EDI)'
-instructionRe = re.compile("(?:\s*(?:%s|%s|%s|%s)(?P<rest>.*))" % (regRe,opcodeRe,commaRe,operandRe))
+regRe = '(?P<register>AL|CL|DL|BL|AH|CH|DH|BH|AX|CX|DX|BX|SP|BP|SI|DI|'\
+        'EAX|ECX|EDX|EBX|ESP|EBP|ESI|EDI)'
+instructionRe = re.compile("(?:\s*(?:%s|%s|%s|%s)(?P<rest>.*))" % \
+                           (regRe,opcodeRe,commaRe,operandRe))
 REGISTER,OPCODE,COMMA,OPERAND = range(1,5)
 
 class instruction:
@@ -196,7 +224,8 @@ class instruction:
     def setOpcodeAndFlags(self):
         parts = self.OpcodeString.split()
         for part in parts:
-            if len(part) == 2 and part[0] in "ABCDEF0123456789" and part[1] in "ABCDEF0123456789":
+            if len(part) == 2 and part[0] in "ABCDEF0123456789" \
+               and part[1] in "ABCDEF0123456789":
                 # suppose I could use a regex above
                 self.Opcode.append(eval("0x%s" % part))
             else:
@@ -271,8 +300,6 @@ class instructionInstance:
 
     def GetSuffixSize(self,modrm=None):
         "Size for everything after Opcode"
-        #if '+rb' in self.OpcodeFlags or '+rw' in self.OpcodeFlags or '+rd' in self.OpcodeFlags:
-        #    return 0
         size = 0
         if self.Instruction.HasModRM:
             size += 1
@@ -341,24 +368,9 @@ class instructionInstance:
                 elif val in displacement:
                     retVal += "%08X" % self.Displacement
                 elif val in ('r8','r16','r32','mm','xmm','/digit','REG'):
-                    #print val
-                    #print self.ModRM
-                    if '+rd' not in self.Instruction.OpcodeFlags:
-                        retVal += regOpcode[val][self.ModRM.RegOp]
-                    else:
-                        retVal += val
+                    retVal += self.ModRM.RegOpString(val)
                 elif val in ('r/m8','r/m16','r/m32'):
-                    if self.ModRM.Mode == 3:
-                        if val == 'r/m8':
-                            retVal += regOpcode['r8'][self.ModRM.RM]
-                        elif val == 'r/m16':
-                            retVal += regOpcode['r16'][self.ModRM.RM]
-                        elif val == 'r/m32':
-                            retVal += regOpcode['r32'][self.ModRM.RM]
-                        else:
-                            raise RuntimeError("Invalid r/m type")
-                    else:
-                        retVal += val
+                    retVal += self.ModRM.RMString(val)
                 else:
                     # should check for other types
                     retVal += val
