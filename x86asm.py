@@ -356,7 +356,7 @@ class assembler:
                 patchIns.extend(inst.GetSymbolPatchins())
             else: # a label
                 i.Address = currentAddress
-                newInsts.append(i)
+                symbols.append((i.Name,i.Address))
         for i in newInsts:
             if isinstance(i, instructionInstance):
                 print i.OpText()
@@ -365,6 +365,11 @@ class assembler:
         print "PATCHINS: "
         for patch in patchIns:
             print "%s => 0x%08X" % patch
+        print
+        print "SYMBOLS: "
+        for sym in symbols:
+            print "%s => 0x%08X" % sym
+            
             
     def Compile(self):
         self.pass1()
