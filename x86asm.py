@@ -32,8 +32,9 @@ def possibleDefault(*toks):
             yldVal.extend(restMatches)
             yield yldVal
 
-def possibleImmediate(*toks):
-    immediateVals = ['imm32','imm16','imm8']
+def possibleImmediateOrRelative(*toks):
+    # TODO: can we narrow down which one this should be?
+    immediateVals = ['imm32','imm16','imm8','rel32','rel16','rel8']
     first,rest = toks[0],toks[1:]
     if not rest:
         for val in immediateVals:
@@ -41,20 +42,6 @@ def possibleImmediate(*toks):
     else:
         possibleLookup = getProperLookup(*rest)
         for val in immediateVals:
-            for restMatches in possibleLookup(*rest):
-                yldVal = [(OPERAND,val)]
-                yldVal.extend(restMatches)
-                yield yldVal
-
-def possibleRelative(*toks):
-    relativeVals = ['rel32','rel16','rel8']
-    first,rest = toks[0],toks[1:]
-    if not rest:
-        for val in relativeVals:
-            yield [(OPERAND,val)]
-    else:
-        possibleLookup = getProperLookup(*rest)
-        for val in relativeVals:
             for restMatches in possibleLookup(*rest):
                 yldVal = [(OPERAND,val)]
                 yldVal.extend(restMatches)
@@ -94,32 +81,38 @@ def possibleRegister(*toks):
 
 def possibleIndirect(*toks):
     """
-    Registers may be hardcoded for superfast lookups, or an r or r/m value.
-    We could probably optimize better with a better understanding of the environment.
+    This is pretty much an r/m value
         i.e. it doesn't make sense to move an r/m8 into an r32
     """    
-    registerVals = []
-    lbracket,register,rest = toks[0],toks[1],toks[2:]
-    regName = register[1]
-    
-    if regName in rb:
-        registerVals.append((OPERAND, 'r/m8'))
-    elif regName in rw:
-        registerVals.append((OPERAND,'r/m16'))
-    elif regName in rd:
-        registerVals.append((OPERAND,'r/m32'))
-    else:
-        raise RuntimeError("Invalid Register name '%s'" % regName)
+    possibleVals = []
+    lbracket,operand,rest = toks[0],toks[1],toks[2:]
+
+    if operand[0] in (NUMBER,SYMBOL):
+        # TODO: CAN WE OPTIMIZE THIS?
+        possibleVals.append((OPERAND,'r/m32'))
+        possibleVals.append((OPERAND,'r/m16'))
+        possibleVals.append((OPERAND,'r/m8'))
+    elif operand[0] == REGISTER:        
+        regName = operand[1]
+        
+        if regName in rb:
+            possibleVals.append((OPERAND, 'r/m8'))
+        elif regName in rw:
+            possibleVals.append((OPERAND,'r/m16'))
+        elif regName in rd:
+            possibleVals.append((OPERAND,'r/m32'))
+        else:
+            raise RuntimeError("Invalid Register name '%s'" % regName)
     
     while rest[0] != (RBRACKET, ']'):
         rest = rest[1:]
     rest = rest[1:]
     if not rest:
-        for val in registerVals:
+        for val in possibleVals:
             yield [val]
     else:
         possibleLookup = getProperLookup(*rest)
-        for val in registerVals:
+        for val in possibleVals:
             for restMatches in possibleLookup(*rest):
                 yldVal = [val]
                 yldVal.extend(restMatches)
@@ -130,8 +123,8 @@ possibleLookups = {
     OPCODE:possibleDefault,
     COMMA:possibleDefault,
     LBRACKET:possibleIndirect,
-    NUMBER:possibleImmediate,
-    SYMBOL:possibleImmediate,}
+    NUMBER:possibleImmediateOrRelative,
+    SYMBOL:possibleImmediateOrRelative,}
 
 def getProperLookup(*toks):
     return possibleLookups[toks[0][0]]

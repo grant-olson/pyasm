@@ -18,6 +18,8 @@ class test_instruction_lookups(unittest.TestCase):
         printBestMatch("MOV EAX,[EBX]")
         printBestMatch("MOV EAX, EBX")
         self.failUnlessRaises(RuntimeError,printBestMatch,"MOV [EAX],[EBX]")
+        printBestMatch("MOV [0x1234],EAX")
+        printBestMatch("MOV [foo],EAX")
         
         
     def test_invalid_combos(self):

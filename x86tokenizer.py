@@ -161,18 +161,20 @@ def tokenizeInst(s):
             index += 1
         elif toks[index][0] == LBRACKET:
             index += 1
-            if toks[index][0] != REGISTER:
-                raise tokenizeError("Invalid Instruction: '%s'  Expected a " \
-                                    "REGISTER inside the [brackets]" %s)
-            else:
+            if toks[index][0] in (NUMBER,SYMBOL):
+                index += 1
+            elif toks[index][0] == REGISTER:
                 index += 1
                 if toks[index][0] == NUMBER:
-                    index += 1
-                if toks[index][0] != RBRACKET:
-                    raise tokenizeError("Invalid Instruction: '%s' Expected an " \
-                                        "ending BRACKET here." % s)
-                else:
-                    index += 1
+                    index += 1   
+            else:
+                raise tokenizeError("Invalid Instruction: '%s'  Expected a " \
+                                    "REGISTER inside the [brackets]" %s)
+            if toks[index][0] != RBRACKET:
+                raise tokenizeError("Invalid Instruction: '%s' Expected an " \
+                                    "ending BRACKET here." % s)
+            else:
+                index += 1
         else:
             raise tokenizeError("Invalid Instruction: '%s' " \
                                 "Expected a REGISTER,LBRACKET,NUMBER,or SYMBOL" % s)
