@@ -14,14 +14,28 @@ def runCmd(cmd):
         print line ,
     print
     
-for file in glob("*.txt"):
-    partOfName = file[:-4]
-    runCmd("rst2html.py %s html\\%s.html" % (file, partOfName))
-    runCmd("rst2latex.py %s pdf\\%s.tex" % (file, partOfName))
-    runCmd("latex -output-directory pdf pdf/%s.tex" % partOfName)
-    runCmd("dvipdfm -o pdf/%s.pdf pdf/%s.dvi" % (partOfName,partOfName))
-    runCmd("del /S pdf\\*.tex")
-    runCmd("del /S pdf\\*.dvi")
-    runCmd("del /S pdf\\*.log")
-    runCmd("del /S pdf\\*.aux")
+for f in glob("*.txt"):
+    try:
+        partOfName = f[:-4]
+        runCmd("rst2html.py %s html\\%s.html" % (f, partOfName))
+        runCmd("rst2latex.py %s pdf\\%s.tex" % (f, partOfName))
+        runCmd("latex -output-directory pdf pdf/%s.tex" % partOfName)
+
+        tmpFile = file("pdf/%s.tex" % partOfName).read()
+        print tmpFile
+        tmpFile = tmpFile.replace("%% generator Docutils: ",
+                                  "\usepackage{times}\n%% generator Docutils: ")
+        print tmpFile
+        f = file("pdf/%s.tex","w")
+        f.write(tmpFile)
+        f.close()
+
+        runCmd("dvipdfm -o pdf/%s.pdf pdf/%s.dvi" % (partOfName,partOfName))
+    except:
+        print "Processing %s failed" % f
+    
+#runCmd("del /S pdf\\*.tex")
+runCmd("del /S pdf\\*.dvi")
+runCmd("del /S pdf\\*.log")
+runCmd("del /S pdf\\*.aux")
     

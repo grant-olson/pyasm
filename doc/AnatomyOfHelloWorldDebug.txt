@@ -280,6 +280,8 @@ Debug T  Where to find the .pdb?
 Symbol Table
 ============
 
+::
+
   COFF SYMBOL TABLE
   000 00000000 DEBUG  notype       Filename     | .file
     C:\objtest\objtest\objtest.cpp
@@ -315,6 +317,11 @@ Symbol Table
 
   String Table Size = 0x2A bytes
 
+Summary
+=======
+
+::
+
   Summary
 
          3A4 .debug$S
@@ -322,3 +329,4 @@ Symbol Table
           38 .drectve
            E .rdata
           38 .text
+

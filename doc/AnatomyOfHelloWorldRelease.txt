@@ -214,9 +214,12 @@ SYMBOL TABLE
 Summary
 =======
 
+::
+
   Summary
 
            E .data
           10 .debug$F
           26 .drectve
           10 .text
+	  
