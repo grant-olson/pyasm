@@ -38,30 +38,17 @@ class x86Disassembler:
 
     def disasm(self):
         while self.Code.Data[self.Code.Location:]:
-            op = self.Code.GetUnsignedByte()
-            from pprint import pprint
+            op = []
+            op.append(self.Code.GetUnsignedByte())
             try:
-                inst = instByOpcode[op]
+                inst = opcodeDict[tuple(op)]
             except KeyError,x:
-                raise RuntimeError("Unsupported Opcode '0x%x'" % op)
-            print inst.Signature, inst.Signature[0],
-            #if inst.HasModRM(): print "MOD RM"
-            rest = inst.Signature[1:]
-            while rest:
-                first,rest = rest[0],rest[1:]
-                if first in ('imm32','cd'):
-                    print self.Code.GetUnsignedDword()
-                else:
-                    print 'FIRST="%s"' % first
-                print first,
-            
+                raise RuntimeError("Unsupported Opcode '%s'" % op)
+            print inst.InstructionString,
+            print repr(self.Code.GetString(inst.GetSuffixSize()))
             
 
 if __name__ == '__main__':
     code = x86Block('h\x00\x00\x00\x00\xe8\x00\x00\x00\x00\x83\xc4\x043\xc0\xc3')
-    dis = x86Disassembler(code)
-
-    op = instByOpcode[0x68]
-    print op
-    
+    dis = x86Disassembler(code)    
     dis.disasm()

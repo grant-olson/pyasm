@@ -1,80 +1,216 @@
-from x86tokens import *# how to add /0?
-
-rDefs = {
-    r8:{0:'AL',1:'CL',2:'DL',3:'BL',4:'AH',5:'CH',6:'DH',7:'BH'},
-    r16:{0:'AX',1:'CX',2:'DX',3:'BX',4:'SP',5:'BP',6:'SI',7:'DI'},
-    r32:{0:'EAX',1:'ECX',2:'EDX',3:'EBX',4:'ESP',5:'EBP',6:'ESI',7:'EDI'},
-    mm:{0:'MM0',1:'MM1',2:'MM2',3:'MM3',4:'MM4',5:'MM5',6:'MM6',7:'MM7'},
-    xmm:{0:'XMM0',1:'XMM1',2:'XMM2',3:'XMM3',4:'XMM4',5:'XMM5',6:'XMM6',7:'XMM7'},
-    dx:{0:'/d0',1:'/d1',2:'/d2',3:'/d3',4:'/d4',5:'/d5',6:'/d6',7:'/d7'},
-}
-
-rmDefs = {
-    0x0:{0:'[BX+SI]',1:'[BX+DI]',2:'[BP+SI]',3:'[BP+DI]',4:'[SI]',5:'[DI]',6:'disp16',7:'[BX]'},
-    0x1:{0:'[BX+SI]+disp8',1:'[BX+DI]+disp8',2:'[BP+SI]+disp8',3:'[BP+DI]+disp8',4:'[SI]+disp8',
-         5:'[DI]+disp8',6:'[BP]+disp8',7:'[BX]+disp8'},
-    0x2:{0:'[BX+SI]+disp16',1:'[BX+DI]+disp16',2:'[BP+SI]+disp16',3:'[BP+DI]+disp16',4:'[SI]+disp16',
-         5:'[DI]+disp16',6:'[BP]+disp16',7:'[BX]+disp16'},
-    0x3:{}#TODO: Deal with special case
-    }
-
-class modRM:
-    def __init__(self, mod=0x0,regOp=0x0,rm=0x0):
-        self.Mod = mod
-        self.RegOp= regOp
-        self.RM = rm
-
 #
-# OKAY THE ACTUAL INSTRUCITONS HERE
-#
+# TODO: how do we handle dup opcodes for 16 and 32 bit?
+# TODO: How do we handle dup opcodes for / notation?
+# TODO: Multiple opcode flags
 
-instBySig = {}
-instByOpcode = {}
+import re
+
+class OpcodeTooShort(Exception):pass
+
+class OpcodeDict(dict):
+    """
+    Holds instructions by opcode for lookup.
+    If you get an OpcodeTooShort exception, you need to keep on grabbing bytes
+    until you get a good opcode.
+    """
+    def __getitem__(self,key):
+        retVal = dict.__getitem__(self,key)
+        if retVal == None:
+            raise OpcodeTooShort()
+        return retVal
+
+    def __setitem__(self,key,value):
+        if self.has_key(key):
+            raise RuntimeError("Duplicate key [0x%X]" % key)
+        dict.__setitem__(self,key,value)
+        if len(key) > 1:
+            for i in range(len(key)-1):
+                tmpKey = key[:i]
+                dict.__setitem__(self,tmpKey,value)
+
+opcodeDict = OpcodeDict()
+                
+opcodeFlags = ['/0','/1','/2','/3','/4','/5','/6','/7',
+               '/r',
+               'cb','cw','cd','cp',
+               'ib','iw','id',
+               '+rb','+rw','+rd',
+               '+i'
+               ]
+instModRM = ['r/m8','r/m16','r/m32','r8','r16','r32']
+immediate = ['imm8','imm16','imm32']
+displacement = ['rel8','rel16','rel32']
 
 class instruction:
-    def __init__(self, sig, op, flags=None):
-        self.Signature = sig
-        self.Opcode = op
-        self.Flags = flags
-        if not self.Flags: self.Flags = []
-        instBySig[self.Signature] = self
-        instByOpcode[self.Opcode] = self
-    def HasModRM(self):
-        return False
+    def __init__(self,opstr,inststr,desc):
+        self.OpcodeString = opstr
+        self.InstructionString = inststr
+        self.Description = desc
 
-i = instruction #shorthand
+        self.Opcode = []
+        self.OpcodeSize = 0
+        self.OpcodeFlags = []
+        
+        self.HasImmediate = False
+        self.ImmediateSize = 0 # no of bytes
+        self.Immediate = None
 
-i(('CALL','cd'),0xE8)
+        self.HasModRM = False        
+        self.ModRM = None
 
-MOV = 'MOV'
-i((MOV,rm8,r8),0x88)
-i((MOV,rm16,r16),0x89)
-i((MOV,rm32,r32),0x89)
-i((MOV,r8,rm8),0x8A)
-i((MOV,r16,rm16),0x8B)
-i((MOV,r32,rm32),0x8B)
+        self.HasSIB = False
+        self.SIB = None
 
-            # don't care about segmends and moffs yet
+        self.HasPrefixes = False        
+        self.Prefixes = None
 
-#how to add rb,rw,rd?
-i((MOV,r8,imm8),0xB0) 
-i((MOV,r16,imm16),0xB8)
-i((MOV,r32,imm32),0xB8)
+        self.HasDisplacement = False
+        self.DisplacementSize = 0
+        self.Displacement = None
 
-# how to add /0?  
-i((MOV,rm8,imm8),0xC6)
-i((MOV,rm16,imm16),0xC7)
-i((MOV,rm32,imm32),0xC7)
+        self.setOpcodeAndFlags()
+        self.setHasFlags()
 
-# TODO: HANDLE AUTOMATIC OPCODES
-PUSH = 'PUSH'
-i((PUSH,d6,rm16),0xFF)
-i((PUSH,d6,rm32),0xFF)
-i((PUSH,rw,r16),0x50)
-i((PUSH,rd,r32),0x50)
-i((PUSH,imm8),0x6A)
-i((PUSH,imm16),0x68)
-i((PUSH,'imm32'),0x68)
-i((PUSH,),0x0E)
+        opcodeDict[self.Opcode] = self        
+
+    def setOpcodeAndFlags(self):
+        parts = self.OpcodeString.split()
+        for part in parts:
+            if len(part) == 2 and part[0] in "ABCDEF0123456789" and part[1] in "ABCDEF0123456789":
+                # suppose I could use a regex above
+                self.Opcode.append(eval("0x%s" % part))
+            else:
+                self.OpcodeFlags.append(part)
+
+        self.Opcode = tuple(self.Opcode)
+        self.OpcodeSize = len(self.Opcode)
+                
+    def setHasFlags(self):
+        for i in instModRM:
+            if i in self.InstructionString:
+                self.HasModRM = True
+                break
+        for i in immediate:
+            if i in self.InstructionString:
+                self.HasImmediate = True
+                if i.endswith('8'):
+                    self.ImmediateSize = 1
+                elif i.endswith('16'):
+                    self.ImmediateSize = 2
+                elif i.endswith('32'):
+                    self.ImmediateSize = 4
+                else:
+                    raise RuntimeError("Invalid Immediate Value")
+                break
+
+        for i in displacement:
+            if i in self.InstructionString:
+                self.HasDisplacement = True
+                if i.endswith('8'):
+                    self.DisplacementSize = 1
+                elif i.endswith('16'):
+                    self.DisplacementSize = 2
+                elif i.endswith('32'):
+                    self.DisplacementSize = 4
+                else:
+                    raise RuntimeError("Invalid Displacement Value")
+                break
+        #%TODO: figure out logic for SIB, and prefixes        
+        
+    def GetSuffixSize(self):
+        "Size for everything after Opcode"
+        size = 0
+        if self.HasModRM: size += 1
+        if self.HasSIB: size += 1
+        if self.HasDisplacement: size += self.DisplacementSize
+        if self.HasImmediate: size += self.ImmediateSize
+        return size
+
+    def __str__(self):
+        retVal = ""
+        retVal += self.OpcodeString + "\n"
+        retVal += self.InstructionString + "\n"
+        retVal += self.Description + "\n"
+        retVal += "OP: %s, OP flag: %s\n" % (self.Opcode,self.OpcodeFlags)
+        return retVal
+    
+i = instruction
+
+i("04 ib", "ADD AL,imm8", "Add imm8 to AL")
+#i("05 iw", "ADD AX,imm16", "Add imm16 to AX")
+i("05 id", "ADD EAX,imm32", "Add imm32 to EAX")
+#i("80 /0 ib", "ADD r/m8,imm8", "Add imm6 to r/m8")
+#i("81 /0 iw", "ADD r/m16,imm16", "Add imm16 to r/m16")
+#i("81 /0 id", "ADD r/m32,imm32", "Add imm32 to r/m32")
+#i("83 /0 ib", "ADD r/m16, imm8", "Add sign extended imm8 to r/m16")
+i("83 /0 iw", "Add r/m32,imm8", "Add sign extended imm8 to r/m32")
+i("00 /r", "Add r/m8,r8", "Add r8 to r/m8")
+#i("01 /r", "Add r/m16,r16", "Add r16 to r/m16")
+i("01 /r", "Add r/m32,r32", "Add r32 to r/m32")
+i("02 /r", "Add r8,r/m8", "Add r/m8 to r/8")
+#i("03 /r", "Add r16,r/m16", "Add r/m16 to r16")
+i("03 /r", "Add r32,r/m32", "Add r/m32 to r32")
+
+#i("E8 cw", "CALL rel16", "Call near, relative, displacement relative to next instruction")
+i("E8 cd", "CALL rel32", "Call near, relative, displacement relative to next instruction")
+#i("FF /2", "CALL r/m16", "Call near, absolute indirect, address given in r/m16")
+#i("FF /2", "CALL r/m32", "Call near, absolute indirect, address given in r/m32")
+#i("9A cd", "CALL ptr16:16", "Call far, absolute, address given in operand")
+i("9A cp", "CALL ptr32:32", "Call far, absolute, address given in operand")
+#i("FF /3", "CALL m16:16", "Call far, absolute indirect, address given in m16:16")
+#i("FF /3", "CALL m32:32", "Call far, absolute indirect, address given in m32:32")
 
 
+i("88 /r","MOV r/m8,r8","Move r8 to r/m8.")
+#i("89 /r","MOV r/m16,r16","Move r16 to r/m16.")
+i("89 /r", "MOV r/m32,r32", "Move r32 to r/m32")
+i("8A /r","MOV r8,r/m8","Move r/m8 to r8")
+#i("8B /r", "MOV r16,r/m16","Move r/m16 to r16")
+i("8B /r","MOV r32,r/m32", "Move r/m32 to r32")
+i("8C /r", "MOV r/m16,Sreg", "Move Segment register to r/m16")
+i("8E /r", "MOV Sreg,r/m16", "Move r/m16 to Segment Register")
+i("A0", "MOV AL,moffs8", "Move byte at (sef:offset) to AL.")
+#i("A1", "MOV AX,moffs16", "Move word at (seg:offset) to AX.")
+i("A1", "MOV EAX,moffs32","Move doubleword at (seg:offset) to EAX.")
+i("A2","MOV moffs8,AL","Move AL to (seg:offset)")
+i("A3", "MOV moffs16,AX", "Move AX to (seg:offset)")
+i("B0 +rb","MOV r8,imm8", "Move imm8 to r8")
+#i("B8 +rw", "MOV r16,imm16","Move imm16 to r16")
+i("B8 +rd", "MOV r32,imm32", "Move imm32 to r32")
+i("C6 /0", "MOV r/m8,imm8", "Move imm8 to r/m8")
+#i("C7 /0", "MOV r/m16,imm16", "Move imm16 to r/m16")
+i("C7 /0", "MOV r/m32,imm32", "Move imm32 to r/m32")
+
+#i("FF /6", "PUSH r/m16", "Push r/m16.")
+i("FF /6", "PUSH r/m32", "PUSH r/m32.")
+#i("50 +rw", "PUSH r16", "Push r16.")
+i("50 +rd", "PUSH r32", "Push r32.")
+i("6A", "PUSH imm8", "Push imm8.")
+#i("68", "PUSH imm16", "push imm16.")
+i("68", "PUSH imm32", "Push imm32.")
+i("0E", "PUSH CS", 'Push CS')
+i("16", "PUSH SS", "Push SS")
+i("1E", "PUSH DS", "Push DS")
+i("06", "PUSH ES", "PUsh ES")
+i("0F A0", "PUSH FS", "Push FS.")
+i("0F A8", "PUSH GS", "Push GS.")
+
+i("C3", "RET", "Near return to calling procedure")
+i("CB", "RET", "Far Return to calling procedure")
+i("C2 iw", "RET imm16", "Near return to calling procedure and pop imm16 bytes from stack")
+i("CA iw", "RET imm16", "Far Return to calling procedure and pop imm16 bytes from the stack")
+
+i("34 ib", "XOR AL, imm8", "AL XOR imm8.")
+#i("35 iw", "XOR AX,imm16", "AX XOR imm16.")
+i("35 id", "XOR EAX,imm32", "EAX XOR imm32.")
+i("80 /6 ib", "XOR r/m8,imm8", "r/m8 XOR imm8.")
+#i("81 /6 iw", "XOR r/m16,imm16", "r/m16 xor imm16")
+i("81 /6 iw", "XOR r/m32,imm32", "r/m32 xor imm32")
+#i("83 /6 ib", "XOR r/m16,imm8", "r/m16 XOR imm8 (sign-extended)")
+#i("83 /6 iw", "XOR r/m32,imm8", "r/m32 XOR imm8 (sign-extended)")
+i("30 /r", "XOR r/m8,r8", "r/m8 XOR r8.")
+#i("31 /r", "XOR r/m16,r16", "r/m16 XOR r16")
+i("31 /r", "XOR r/m16,r16", "r/m16 XOR r16")
+i("32 /r", "XOR r8,r/m8", "r8 XOR r/m8")
+#i("33 /r", "XOR r16,r/m16", "r16 XOR r/m16")
+i("33 /r", "XOR r32,r/m32", "r32 XOR r/m32")
