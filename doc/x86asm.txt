@@ -6,9 +6,12 @@ This module contains the necessary code to assmble code into machine language.
 Symbols
 -------
 
-There are a variety of symbols that can be declared in user's assembly code.  This is an attempt to list them out so that I can figure out how to implement them.
+There are a variety of symbols that can be declared in user's assembly code.
+This is an attempt to list them out so that I can figure out how to implement
+them.
 
-Symbols ultimately get converted to immediate values, relative values, or r/m values for indirect reference.
+Symbols ultimately get converted to immediate values, relative values, or r/m
+values for indirect reference.
 
 .. warning:
     I need to get a better idea of how other assemblers (MASM, TASM) implement

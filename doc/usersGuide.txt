@@ -1,5 +1,5 @@
 +++++++++++++++++++++++++
-PyASM User's Guide V. 0.3
+pyasm User's Guide V. 0.3
 +++++++++++++++++++++++++
 
 by Grant Olson <olsongt at verizon.net>
@@ -12,12 +12,12 @@ by Grant Olson <olsongt at verizon.net>
 Introduction
 ============
 
-PyASM is a full-featured dynamic assembler written entirely in Python.  By
+Pyasm is a full-featured dynamic assembler written entirely in Python.  By
 dynamic, I mean that it can be used to generate and execute machine code in
 python at runtime without requiring the generation of object files and linkage.
 It essentially allow 'inline' assembly in python modules on x86 platforms.
 
-PyASM can also generate object files (for windows) like a traditional
+Pyasm can also generate object files (for windows) like a traditional
 standalone assembler, although you're probably better off using one of the many
 freely available assemblers if this is you primary goal.
 
@@ -25,7 +25,7 @@ freely available assemblers if this is you primary goal.
 Installation
 ------------
 
-PyASM requires python 2.4 or later.  To the best of my knowledge, the only 2.4
+Pyasm requires python 2.4 or later.  To the best of my knowledge, the only 2.4
 specific feature I've used is `from x import (a,b,c)`, but I need to draw a
 line in the sand somewhere as far as the installations I'll test and support.
 
