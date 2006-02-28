@@ -1,5 +1,7 @@
 import sys
 
+import re, sys, glob
+
 head = """/* Copyright 2004-2005 Grant T. Olson. See license.txt for terms.*/
 #include <Python.h>
 
@@ -41,75 +43,7 @@ load_PyVarObject(PyObject* module)
     OFFSET(module,PyVarObject,ob_size);
 }
 
-static void
-load_PyCellObject(PyObject *structs)
-{
-    PyObject *sm = Py_InitModule("PyCellObject", StructsMethods);
-    
-    load_PyObject(sm);
-    OFFSET(sm,PyCellObject,ob_ref);
 
-    PyModule_AddObject(structs,"PyCellObject",sm);
-}
-
-static void
-load_PyClassObject(PyObject *structs)
-{
-    PyObject *sm = Py_InitModule("PyClassObject", StructsMethods);
-
-    load_PyObject(sm);
-    OFFSET(sm,PyClassObject,cl_bases);
-    OFFSET(sm,PyClassObject,cl_dict);
-    OFFSET(sm,PyClassObject,cl_name);
-
-    OFFSET(sm,PyClassObject,cl_getattr);
-    OFFSET(sm,PyClassObject,cl_setattr);
-    OFFSET(sm,PyClassObject,cl_delattr);
-
-    PyModule_AddObject(structs,"PyClassObject",sm);
-}
-
-static void
-load_PyInstanceObject(PyObject *structs)
-{
-    PyObject *sm = Py_InitModule("PyInstanceObject",StructsMethods);
-
-    load_PyObject(sm);
-    OFFSET(sm,PyInstanceObject,in_class);
-    OFFSET(sm,PyInstanceObject,in_dict);    
-    OFFSET(sm,PyInstanceObject,in_weakreflist);
-
-    PyModule_AddObject(structs,"PyInstanceObject",sm);
-}
-
-
-static void
-load_PyMethodObject(PyObject *structs)
-{
-    PyObject *sm = Py_InitModule("PyMethodObject",StructsMethods);
-
-    load_PyObject(sm);
-    OFFSET(sm,PyMethodObject,im_func);
-    OFFSET(sm,PyMethodObject,im_self);
-    OFFSET(sm,PyMethodObject,im_class);
-    OFFSET(sm,PyMethodObject,im_weakreflist);
-
-    PyModule_AddObject(structs,"PyMethodObject",sm);
-}
-
-
-static void
-load_PyString(PyObject *structs)
-{
-    PyObject *sm = Py_InitModule("PyString", StructsMethods);
-    
-    load_PyVarObject(sm);
-    OFFSET(sm,PyStringObject,ob_shash);
-    OFFSET(sm,PyStringObject,ob_sstate);
-    OFFSET(sm,PyStringObject,ob_sval);
-
-    PyModule_AddObject(structs,"PyString",sm);
-}
 """
 
 tail = """
@@ -128,28 +62,39 @@ initstructs(void)
     Py_INCREF(StructsError);
     PyModule_AddObject(m, "StructsError", StructsError);
 
-    load_PyObject(n);
-    PyModule_AddObject(m, "PyObject", n);
-    load_PyCellObject(m);
-    load_PyClassObject(m);
-    load_PyInstanceObject(m);
-    load_PyMethodObject(m);
-    load_PyString(m);
+    /*load_PyObject(n);
+    PyModule_AddObject(m, "PyObject", n);*/
+    %s
 }"""
 
-import re
 
+functionHead = """static void
+load_%(funcname)s(PyObject *structs)
+{
+    PyObject *sm = Py_InitModule("%(funcname)s",StructsMethods);
 
+"""
+
+functionTail = """
+
+    PyModule_AddObject(structs,"%(funcname)s",sm);
+}"""
 
 structsRe = re.compile("typedef\s+struct\s*\w*\s*{(.*?)}\s*(\w+)",re.DOTALL)
 typeofRe = re.compile(r"(?P<type>\w+)\s+(?P<rest>[^;]+);")
 variablesRe = re.compile(r"(\*|\w+)[,\s]*")
+names = []
 
 def parse_filetext(filetext):
+    global names
     for struct in structsRe.findall(filetext):
         body,name = struct
-        print "NAME", name
-      
+        if name in ('PyObject','PyVarObject'):
+            continue
+        print >> sys.stderr, "NAME", name
+
+        print functionHead % {'funcname':name}
+        names.append(name)
         startComment = body.find("/*")
         while startComment >= 0: #strip multiline comments
           endComment = body.find("*/",startComment) + 2
@@ -161,10 +106,13 @@ def parse_filetext(filetext):
             line = line.strip()
             if line.startswith("#"):
                 print >> sys.stderr, "PREPROCESSOR DIRECTIVE"
-                print line
-            elif line in ('PyObject_HEAD','PyObject_VAR_HEAD','_PyTZINFO_HEAD',
-                          '_PyDateTime_TIMEHEAD','_PyDateTime_DATETIMEHEAD'):
+                print >> sys.stderr, line
+            elif line == 'PyObject_HEAD':
                 print >> sys.stderr, "HEADER" , line
+                print "    load_PyObject(sm);"
+            elif line == 'PyObject_VAR_HEAD':
+                print >> sys.stderr, "HEADER" , line
+                print "    load_PyVarObject(sm);"
             elif line:
                 typeof,rest = typeofRe.match(line).groups()
                 print >> sys.stderr, "TYPE", typeof
@@ -177,17 +125,44 @@ def parse_filetext(filetext):
                         print >> sys.stderr, "POINTER", var
                     else:
                         print >> sys.stderr, "normal", var
+                    print "    OFFSET(sm,%s,%s);" % (name, var)
+
+        print functionTail % {'funcname':name}
                         
 def parse_headers():
     for filename in [x for x in glob.glob("c:\\python24\\include\\*.h") if x not in
                      ('c:\\python24\\include\\datetime.h',
                       'c:\\python24\\include\\descrobject.h',
                       'c:\\python24\\include\\fileobject.h',
+                      'c:\\python24\\include\\frameobject.h',
+                      'c:\\python24\\include\\genobject.h',
+                      'c:\\python24\\include\\grammar.h',
+                      'c:\\python24\\include\\listobject.h',
+                      'c:\\python24\\include\\methodobject.h',
+                      'c:\\python24\\include\\node.h',
+                      'c:\\python24\\include\\object.h',
+                      'c:\\python24\\include\\parsetok.h',
+                      'c:\\python24\\include\\pyport.h',
+                      'c:\\python24\\include\\pystate.h',
+                      'c:\\python24\\include\\py_curses.h',
+                      'c:\\python24\\include\\stringobject.h',
+                      'c:\\python24\\include\\structmember.h',
+                      'c:\\python24\\include\\structseq.h',
+                      'c:\\python24\\include\\symtable.h',
+                      'c:\\python24\\include\\traceback.h',
+                      'c:\\python24\\include\\tupleobject.h',
+                      'c:\\python24\\include\\ucnhash.h',
                       )]:
-        print "PROCESSING FILE", filename
+        print >> sys.stderr, "PROCESSING FILE", filename
         f = file(filename) 
         filetext = f.read()
         f.close()
         parse_filetext(filetext)
 
-parse_headers()
+def make_struct_c():
+    print head
+    print body
+    parse_headers()
+    print tail % ''.join(["    load_%s(m);\n" % x for x in names])
+
+make_struct_c()
