@@ -1,3 +1,5 @@
+import sys
+
 head = """/* Copyright 2004-2005 Grant T. Olson. See license.txt for terms.*/
 #include <Python.h>
 
@@ -137,24 +139,55 @@ initstructs(void)
 
 import re
 
-f = file("c:\\python24\\include\\object.h") #stringobject.h")
-filetext = f.read()
-f.close()
 
-structs = re.findall("typedef\s+struct\s*\w*\s*{(.*?)}\s*(\w+)",filetext,re.DOTALL)
 
-for struct in structs:
-    body,name = struct
-    print "NAME", name
-  
-    startComment = body.find("/*")
-    while startComment >= 0: #strip multiline comments
-      endComment = body.find("*/",startComment) + 2
-      body = body[:startComment] + body[endComment:]
-      startComment = body.find("/*")
+structsRe = re.compile("typedef\s+struct\s*\w*\s*{(.*?)}\s*(\w+)",re.DOTALL)
+typeofRe = re.compile(r"(?P<type>\w+)\s+(?P<rest>[^;]+);")
+variablesRe = re.compile(r"(\*|\w+)[,\s]*")
 
-    lines = body.split("\n")
-    for line in lines:
-        line = line.strip()
-        if line:
-            print "LINE: ", line
+def parse_filetext(filetext):
+    for struct in structsRe.findall(filetext):
+        body,name = struct
+        print "NAME", name
+      
+        startComment = body.find("/*")
+        while startComment >= 0: #strip multiline comments
+          endComment = body.find("*/",startComment) + 2
+          body = body[:startComment] + body[endComment:]
+          startComment = body.find("/*")
+
+        lines = body.split("\n")
+        for line in lines:
+            line = line.strip()
+            if line.startswith("#"):
+                print >> sys.stderr, "PREPROCESSOR DIRECTIVE"
+                print line
+            elif line in ('PyObject_HEAD','PyObject_VAR_HEAD','_PyTZINFO_HEAD',
+                          '_PyDateTime_TIMEHEAD','_PyDateTime_DATETIMEHEAD'):
+                print >> sys.stderr, "HEADER" , line
+            elif line:
+                typeof,rest = typeofRe.match(line).groups()
+                print >> sys.stderr, "TYPE", typeof
+                vars = variablesRe.findall(rest)
+                vars.reverse()
+                while vars:
+                    var = vars.pop()
+                    if var == '*':
+                        var = vars.pop()
+                        print >> sys.stderr, "POINTER", var
+                    else:
+                        print >> sys.stderr, "normal", var
+                        
+def parse_headers():
+    for filename in [x for x in glob.glob("c:\\python24\\include\\*.h") if x not in
+                     ('c:\\python24\\include\\datetime.h',
+                      'c:\\python24\\include\\descrobject.h',
+                      'c:\\python24\\include\\fileobject.h',
+                      )]:
+        print "PROCESSING FILE", filename
+        f = file(filename) 
+        filetext = f.read()
+        f.close()
+        parse_filetext(filetext)
+
+parse_headers()
