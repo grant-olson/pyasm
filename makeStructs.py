@@ -94,12 +94,10 @@ def parse_filetext(filetext):
     global names
     for struct in structsRe.findall(filetext):
         body,name = struct
-        if name in ('PyObject','PyVarObject'):
+        if name in ('PyObject','PyVarObject', 'PyFrameObject'):
             continue
         print >> sys.stderr, "NAME", name
 
-        print functionHead % {'funcname':name}
-        names.append(name)
         startComment = body.find("/*")
         while startComment >= 0: #strip multiline comments
           endComment = body.find("*/",startComment) + 2
@@ -107,7 +105,9 @@ def parse_filetext(filetext):
           startComment = body.find("/*")
 
         lines = body.split("\n")
+        isPyObject = False
         for line in lines:
+            
             line = line.strip()
             if not line:
                 continue
@@ -117,11 +117,22 @@ def parse_filetext(filetext):
                 print >> sys.stderr, line
             elif line == 'PyObject_HEAD':
                 print >> sys.stderr, "HEADER" , line
+                
+                isPyObject = True
+                print functionHead % {'funcname':name}
+                names.append(name)
                 print "    load_PyObject(sm);"
             elif line == 'PyObject_VAR_HEAD':
                 print >> sys.stderr, "HEADER" , line
+                
+                isPyObject = True
+                print functionHead % {'funcname':name}
+                names.append(name)
                 print "    load_PyVarObject(sm);"
             elif line:
+                if isPyObject == False:
+                    print >> sys.stderr, "NOT A PyObject: SKIPPING" , name
+                    break
                 typeof,rest = typeofRe.match(line).groups()
                 print >> sys.stderr, "TYPE", typeof
                 vars = variablesRe.findall(rest)
@@ -156,14 +167,15 @@ def parse_filetext(filetext):
                         print >> sys.stderr, "normal", var
                         print "    OFFSET(sm,%s,%s);" % (name, var)
 
-        print functionTail % {'funcname':name}
+        if isPyObject == True:
+            print functionTail % {'funcname':name}
                         
 def parse_headers():
     for filename in [x for x in glob.glob("c:\\python24\\include\\*.h") if x not in
                      ('c:\\python24\\include\\datetime.h',
                       'c:\\python24\\include\\descrobject.h',
                       
-                      'c:\\python24\\include\\frameobject.h',
+
                       'c:\\python24\\include\\genobject.h',
                       'c:\\python24\\include\\grammar.h',
                       'c:\\python24\\include\\listobject.h',
