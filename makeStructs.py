@@ -126,6 +126,11 @@ def parse_filetext(filetext):
                 print >> sys.stderr, "TYPE", typeof
                 vars = variablesRe.findall(rest)
                 vars.reverse()
+
+                if typeof == "struct": # skip struct def
+                    print >> sys.stderr, "STRUCT", vars
+                    vars.pop()
+                
                 print >> sys.stderr, "!!", vars
                 while vars:
                     var = vars.pop()
@@ -173,7 +178,6 @@ def parse_headers():
                       'c:\\python24\\include\\structmember.h',
                       'c:\\python24\\include\\structseq.h',
                       'c:\\python24\\include\\symtable.h',
-                      'c:\\python24\\include\\traceback.h',
 
                       'c:\\python24\\include\\ucnhash.h',
                       )]:
