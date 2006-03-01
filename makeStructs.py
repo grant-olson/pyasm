@@ -52,18 +52,23 @@ PyMODINIT_FUNC
 initstructs(void)
 {
     
-    PyObject *m, *n;
+    PyObject *m, *n, *o;
     /*PyObject *offset;*/
 
     m = Py_InitModule("structs", StructsMethods);
     n = Py_InitModule("PyObject", StructsMethods);
-
+    o = Py_InitModule("PyVarObject", StructsMethods);
+    
     StructsError = PyErr_NewException("structs.StructsError", NULL, NULL);
     Py_INCREF(StructsError);
     PyModule_AddObject(m, "StructsError", StructsError);
 
     load_PyObject(n);
     PyModule_AddObject(m, "PyObject", n);
+
+    load_PyVarObject(o);
+    PyModule_AddObject(m, "PyVarObject", o);
+    
     %s
 }"""
 
@@ -154,7 +159,7 @@ def parse_headers():
                       'c:\\python24\\include\\ucnhash.h',
                       )]:
         print >> sys.stderr, "PROCESSING FILE", filename
-        print "\n\n/* Generated from file %s\n\n" % filename
+        print "\n\n/* Generated from file %s */\n\n" % filename
         f = file(filename) 
         filetext = f.read()
         f.close()
