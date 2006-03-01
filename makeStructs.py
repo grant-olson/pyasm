@@ -87,7 +87,7 @@ functionTail = """
 
 structsRe = re.compile("typedef\s+struct\s*\w*\s*{(.*?)}\s*(\w+)",re.DOTALL)
 typeofRe = re.compile(r"(?P<type>\w+)\s*(?P<rest>[^;]+);")
-variablesRe = re.compile(r"(\(|\)|\*|\[|\]|\w+)[,\s]*")
+variablesRe = re.compile(r"(\(|\)|\*\*|\*|\[|\]|\w+)[,\s]*")
 names = []
 
 def parse_filetext(filetext):
@@ -145,7 +145,7 @@ def parse_filetext(filetext):
                 print >> sys.stderr, "!!", vars
                 while vars:
                     var = vars.pop()
-                    if var == '*':
+                    if var in ('*', '**'):
                         var = vars.pop()
                         print >> sys.stderr, "POINTER", var
                         print "    OFFSET(sm,%s,%s);" % (name, var)
@@ -178,7 +178,6 @@ def parse_headers():
 
                       'c:\\python24\\include\\genobject.h',
                       'c:\\python24\\include\\grammar.h',
-                      'c:\\python24\\include\\listobject.h',
                       'c:\\python24\\include\\methodobject.h',
                       'c:\\python24\\include\\node.h',
                       'c:\\python24\\include\\object.h',
