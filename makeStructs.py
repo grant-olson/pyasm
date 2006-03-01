@@ -62,8 +62,8 @@ initstructs(void)
     Py_INCREF(StructsError);
     PyModule_AddObject(m, "StructsError", StructsError);
 
-    /*load_PyObject(n);
-    PyModule_AddObject(m, "PyObject", n);*/
+    load_PyObject(n);
+    PyModule_AddObject(m, "PyObject", n);
     %s
 }"""
 
@@ -154,6 +154,7 @@ def parse_headers():
                       'c:\\python24\\include\\ucnhash.h',
                       )]:
         print >> sys.stderr, "PROCESSING FILE", filename
+        print "\n\n/* Generated from file %s\n\n" % filename
         f = file(filename) 
         filetext = f.read()
         f.close()
