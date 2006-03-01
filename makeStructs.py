@@ -86,8 +86,8 @@ functionTail = """
 }"""
 
 structsRe = re.compile("typedef\s+struct\s*\w*\s*{(.*?)}\s*(\w+)",re.DOTALL)
-typeofRe = re.compile(r"(?P<type>\w+)\s+(?P<rest>[^;]+);")
-variablesRe = re.compile(r"(\*|\w+)[,\s]*")
+typeofRe = re.compile(r"(?P<type>\w+)\s*(?P<rest>[^;]+);")
+variablesRe = re.compile(r"(\(|\)|\*|\w+)[,\s]*")
 names = []
 
 def parse_filetext(filetext):
@@ -106,9 +106,14 @@ def parse_filetext(filetext):
           body = body[:startComment] + body[endComment:]
           startComment = body.find("/*")
 
+        print body
+
         lines = body.split("\n")
         for line in lines:
             line = line.strip()
+            if not line:
+                continue
+            print >> sys.stderr, "LINE:" , line
             if line.startswith("#"):
                 print >> sys.stderr, "PREPROCESSOR DIRECTIVE"
                 print >> sys.stderr, line
@@ -128,6 +133,15 @@ def parse_filetext(filetext):
                     if var == '*':
                         var = vars.pop()
                         print >> sys.stderr, "POINTER", var
+                    elif var == '(':
+                        print >> sys.stderr, "FUNCTION POINTER", vars
+                        var = vars.pop()
+                        if var != "*":
+                            raise RuntimeError("Invalid FUnction Pointer format: %s" % line)
+                        var = vars.pop()
+                        print "    OFFSET(sm,%s,%s);" % (name, var)
+                        vars = None
+                        
                     else:
                         print >> sys.stderr, "normal", var
                     print "    OFFSET(sm,%s,%s);" % (name, var)
@@ -138,7 +152,7 @@ def parse_headers():
     for filename in [x for x in glob.glob("c:\\python24\\include\\*.h") if x not in
                      ('c:\\python24\\include\\datetime.h',
                       'c:\\python24\\include\\descrobject.h',
-                      'c:\\python24\\include\\fileobject.h',
+                      
                       'c:\\python24\\include\\frameobject.h',
                       'c:\\python24\\include\\genobject.h',
                       'c:\\python24\\include\\grammar.h',
