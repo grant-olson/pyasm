@@ -1,0 +1,21 @@
+Microsoft Visual Studio Solution File, Format Version 8.00
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "structs", "structs.vcproj", "{53BBB28A-F748-4842-9E2C-33F3BB4609D6}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfiguration) = preSolution
+		Debug = Debug
+		Release = Release
+	EndGlobalSection
+	GlobalSection(ProjectConfiguration) = postSolution
+		{53BBB28A-F748-4842-9E2C-33F3BB4609D6}.Debug.ActiveCfg = Release|Win32
+		{53BBB28A-F748-4842-9E2C-33F3BB4609D6}.Debug.Build.0 = Release|Win32
+		{53BBB28A-F748-4842-9E2C-33F3BB4609D6}.Release.ActiveCfg = Release|Win32
+		{53BBB28A-F748-4842-9E2C-33F3BB4609D6}.Release.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+	EndGlobalSection
+	GlobalSection(ExtensibilityAddIns) = postSolution
+	EndGlobalSection
+EndGlobal
