@@ -114,7 +114,7 @@ def parse_filetext(filetext):
             print >> sys.stderr, "LINE:" , line
             if line.startswith("#"):
                 print >> sys.stderr, "PREPROCESSOR DIRECTIVE"
-                print >> sys.stderr, line
+                print line
             elif line == 'PyObject_HEAD':
                 print >> sys.stderr, "HEADER" , line
                 
@@ -178,9 +178,7 @@ def parse_headers():
 
                       'c:\\python24\\include\\genobject.h',
                       'c:\\python24\\include\\grammar.h',
-                      'c:\\python24\\include\\methodobject.h',
                       'c:\\python24\\include\\node.h',
-                      'c:\\python24\\include\\object.h',
                       'c:\\python24\\include\\parsetok.h',
                       'c:\\python24\\include\\pyport.h',
                       'c:\\python24\\include\\pystate.h',
