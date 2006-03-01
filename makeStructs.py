@@ -142,7 +142,6 @@ def parse_filetext(filetext):
                     print >> sys.stderr, "STRUCT", vars
                     vars.pop()
                 
-                print >> sys.stderr, "!!", vars
                 while vars:
                     var = vars.pop()
                     if var in ('*', '**'):
@@ -162,7 +161,6 @@ def parse_filetext(filetext):
                         print >> sys.stderr, "SKIPPING ARRAY STUB" , vars
                         var = vars.pop()
                         var = vars.pop()
-                        print >> sys.stderr, "!!", vars
                     else:
                         print >> sys.stderr, "normal", var
                         print "    OFFSET(sm,%s,%s);" % (name, var)
@@ -173,23 +171,11 @@ def parse_filetext(filetext):
 def parse_headers():
     for filename in [x for x in glob.glob("c:\\python24\\include\\*.h") if x not in
                      ('c:\\python24\\include\\datetime.h',
-                      'c:\\python24\\include\\descrobject.h',
-                      
-
-                      'c:\\python24\\include\\genobject.h',
-                      'c:\\python24\\include\\grammar.h',
-                      'c:\\python24\\include\\node.h',
-                      'c:\\python24\\include\\parsetok.h',
-                      'c:\\python24\\include\\pyport.h',
-                      'c:\\python24\\include\\pystate.h',
                       'c:\\python24\\include\\py_curses.h',
-
-                      'c:\\python24\\include\\structmember.h',
                       'c:\\python24\\include\\structseq.h',
                       'c:\\python24\\include\\symtable.h',
-
-                      'c:\\python24\\include\\ucnhash.h',
                       )]:
+        
         print >> sys.stderr, "PROCESSING FILE", filename
         print "\n\n/* Generated from file %s */\n\n" % filename
         f = file(filename) 
