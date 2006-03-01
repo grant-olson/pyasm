@@ -87,7 +87,7 @@ functionTail = """
 
 structsRe = re.compile("typedef\s+struct\s*\w*\s*{(.*?)}\s*(\w+)",re.DOTALL)
 typeofRe = re.compile(r"(?P<type>\w+)\s*(?P<rest>[^;]+);")
-variablesRe = re.compile(r"(\(|\)|\*|\w+)[,\s]*")
+variablesRe = re.compile(r"(\(|\)|\*|\[|\]|\w+)[,\s]*")
 names = []
 
 def parse_filetext(filetext):
@@ -105,8 +105,6 @@ def parse_filetext(filetext):
           endComment = body.find("*/",startComment) + 2
           body = body[:startComment] + body[endComment:]
           startComment = body.find("/*")
-
-        print body
 
         lines = body.split("\n")
         for line in lines:
@@ -128,11 +126,13 @@ def parse_filetext(filetext):
                 print >> sys.stderr, "TYPE", typeof
                 vars = variablesRe.findall(rest)
                 vars.reverse()
+                print >> sys.stderr, "!!", vars
                 while vars:
                     var = vars.pop()
                     if var == '*':
                         var = vars.pop()
                         print >> sys.stderr, "POINTER", var
+                        print "    OFFSET(sm,%s,%s);" % (name, var)
                     elif var == '(':
                         print >> sys.stderr, "FUNCTION POINTER", vars
                         var = vars.pop()
@@ -141,10 +141,15 @@ def parse_filetext(filetext):
                         var = vars.pop()
                         print "    OFFSET(sm,%s,%s);" % (name, var)
                         vars = None
-                        
+                    elif var == "[":
+
+                        print >> sys.stderr, "SKIPPING ARRAY STUB" , vars
+                        var = vars.pop()
+                        var = vars.pop()
+                        print >> sys.stderr, "!!", vars
                     else:
                         print >> sys.stderr, "normal", var
-                    print "    OFFSET(sm,%s,%s);" % (name, var)
+                        print "    OFFSET(sm,%s,%s);" % (name, var)
 
         print functionTail % {'funcname':name}
                         
@@ -164,12 +169,12 @@ def parse_headers():
                       'c:\\python24\\include\\pyport.h',
                       'c:\\python24\\include\\pystate.h',
                       'c:\\python24\\include\\py_curses.h',
-                      'c:\\python24\\include\\stringobject.h',
+
                       'c:\\python24\\include\\structmember.h',
                       'c:\\python24\\include\\structseq.h',
                       'c:\\python24\\include\\symtable.h',
                       'c:\\python24\\include\\traceback.h',
-                      'c:\\python24\\include\\tupleobject.h',
+
                       'c:\\python24\\include\\ucnhash.h',
                       )]:
         print >> sys.stderr, "PROCESSING FILE", filename
