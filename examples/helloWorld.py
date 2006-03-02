@@ -7,7 +7,7 @@ pyasm(globals(),r"""
           !CALL PySys_WriteStdout 'Hello world!\n\0'
           ADD ESP, 0x4
           MOV EAX,PyNone
-          ADD [EAX],1
+          ADD [EAX+PyObject_ob_refcnt],1
      !ENDPROC
      """)
 
