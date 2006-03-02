@@ -8,18 +8,25 @@ requiring object file generation or linkage.
 New in version 0.3
 ------------------
 
+  + Python structure values are loaded automatically if desired.  For Example,
+    assuming EAX is a pointer to a string MOV [EAX+PyString_ob_sval],0x42424242
+    will change the first four letters of the string to B's.
+
+  + Preliminary debugging console to view generation of assembly at various
+    stages in the compilation pipeline.
+  
   + Implicit string variable creation is now possible.  e.g. "PUSH 'foo\n\0'"
-  now works instead of requiring "!CHARS foo 'foo\n\0'" and "PUSH foo"
+    now works instead of requiring "!CHARS foo 'foo\n\0'" and "PUSH foo"
   
   + New !CALL assembler directive handles throwing arguements onto the stack.
-  e.g.  "!CALL foo bar baz bot" instead of "PUSH bot" "PUSH baz" "PUSH bar"
-  "CALL foo"
+    e.g.  "!CALL foo bar baz bot" instead of "PUSH bot" "PUSH baz" "PUSH bar"
+    "CALL foo"
   
   + Fixed tokenizer for instruction definitions with numbers in them such as
-  INT 3
+    INT 3
   
   + Now includes an 'examples' directory that should be easier for users to
-  read than the test directory.
+    read than the test directory.
 
   + Show symbol name in disassembly if it exists.
 
@@ -27,7 +34,9 @@ New in version 0.2
 ------------------
 
  + Linux Support.  Will work in Linux environments as well as Windows.
+ 
  + Simplified Interface.  You only need to use one function to generate code.
+ 
  + Preliminary Documentation.
 
 
