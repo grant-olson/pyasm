@@ -21,6 +21,7 @@ from test_variables import *
 from test_winmem import *
 from test_x86inst import *
 from test_x86tokenizer import *
+from test_structs import *
 
 if __name__ == "__main__":
     unittest.main()
