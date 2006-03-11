@@ -87,7 +87,7 @@ stringRe = "((?P<q>'|\")(?P<STRING>.*)(?P=q))"
 lbracketRe = '(?P<LBRACKET>\[)'
 rbracketRe = '(?P<RBRACKET>\])'
 numberRe = '(?P<NUMBER>[\+\-]?(0x[0-9A-Fa-f]+|[0-9]+))'
-symbolRe = '(?P<SYMBOL>[A-Za-z_@]+)'
+symbolRe = '(?P<SYMBOL>[A-Za-z_@][A-Za-z_@0-9]*)'
 
 #define final re's
 instructionDefRe = re.compile("(?:%s*(?:%s|%s|%s|%s|%s|%s|%s)(?P<rest>.*))" % \
