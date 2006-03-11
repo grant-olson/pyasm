@@ -338,7 +338,15 @@ class assembler:
     #
     # Write assmebly code
     #
+
+    def freezeProc(self):
+        if self.CurrentProcedure and not self.CurrentProcedure.Frozen:
+            #initialize proc
+            self.CurrentProcedure.Frozen = 1
+            self.CurrentProcedure.EmitProcStartCode(self)
+            
     def AddInstruction(self,inst):
+        self.freezeProc()
         instToks = tokenizeInst(inst)
         instToksMinusLocals = ()
 
@@ -367,10 +375,7 @@ class assembler:
         self.Instructions.append(instToksMinusLocals)
 
     def AI(self,inst):
-        if self.CurrentProcedure and not self.CurrentProcedure.Frozen:
-            #initialize proc
-            self.CurrentProcedure.Frozen = 1
-            self.CurrentProcedure.EmitProcStartCode(self)
+
         self.AddInstruction(inst)
 
     def AddInstructionLabel(self,name,typ=0):
