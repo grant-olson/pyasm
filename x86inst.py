@@ -904,6 +904,13 @@ i("C3", "RET", "Near return to calling procedure")
 i("C2 iw", "RET imm16", "Near return to calling procedure and pop imm16 bytes from stack")
 #i("CA iw", "RET imm32", "Far Return to calling procedure and pop imm16 bytes from the stack")
 
+#AA STOS m8 Store AL at address ES:(E)DI.
+#AB STOS m16 Store AX at address ES:(E)DI.
+#AB STOS m32 Store EAX at address ES:(E)DI.
+i("AA" , "STOSB", "Store AL at address ES:(E)DI.")
+i("AB",  "STOSW", "Store AX at address ES:(E)DI.")
+i("AB", "STOSD", "Store EAX at address ES:(E)DI.")
+
 i("2C ib", "SUB AL,imm8", "Subtract imm8 from AL.")
 i("2D iw", "SUB AX,imm16", "Subtract imm16 from AX.")
 i("2D id", "SUB EAX,imm32", "Subtract imm32 from EAX.")
@@ -918,6 +925,16 @@ i("29 /r", "SUB r/m32,r32", "Subtract r32 from r/m32")
 i("2A /r", "SUB r8,r/m8", "Subtract r/m8 from r8")
 i("2B /r", "SUB r16,r/m16","Subtract r/m16 from r16")
 i("2B /r", "SUB r32,r/m32", "Subtract r/m32 from r32")
+
+i("A8 ib", "TEST AL,imm8", "AND imm8 with AL; set SF, ZF, PF according to result.")
+i("A9 iw", "TEST AX,imm16", "AND imm16 with AX; set SF, ZF, PF according to result.")
+i("A9 id", "TEST EAX,imm32", "AND imm32 with EAX; set SF, ZF, PF according to result.")
+i("F6 /0 ib", "TEST r/m8,imm8", "AND imm8 with r/m8; set SF, ZF, PF according to result.")
+i("F7 /0 iw", "TEST r/m16,imm16", "AND imm16 with r/m16; set SF, ZF, PF according to result.")
+i("F7 /0 id", "TEST r/m32,imm32", "AND imm32 with r/m32; set SF, ZF, PF according to result.")
+i("84 /r", "TEST r/m8,r8", "AND r8 with r/m8; set SF, ZF, PF according to result.")
+i("85 /r", "TEST r/m16,r16", "AND r16 with r/m16; set SF, ZF, PF according to result.")
+i("85 /r", "TEST r/m32,r32", "AND r32 with r/m32; set SF, ZF, PF according to result.")
 
 i("34 ib", "XOR AL, imm8", "AL XOR imm8.")
 i("35 iw", "XOR AX,imm16", "AX XOR imm16.")
