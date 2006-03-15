@@ -614,7 +614,23 @@ def codePackageFromFile(fil,constCallback=None):
         
     _log_header("END COMPILE OF %s" % filename)
     return a.Compile()
-        
+
+def manglePythonNames(cp):
+    """
+    Python names need to start with a _ for STDCALL designation in
+    static compilation, but names are resolved without this.  This adds
+    The name mangling where appropriate.
+    """
+    newPatchins = []
+    for patch in cp.CodePatchins:
+        if patch[0].startswith("Py") or patch[0].startswith("_Py"):
+            patch = ("_" + patch[0], patch[1],patch[2])
+        newPatchins.append(patch)
+    cp.CodePatchins = newPatchins
+
+    return cp # even though it did it in place
+
+
 if __name__ == '__main__':
     a = assembler()
     a.AP("foo")
