@@ -1,0 +1,8 @@
+Need to be able to PUSH 0x1 as a 32bit value.  Right now it's always eight bit.
+Macro to automatically check for errors and abort when calling pyobjects.
+
+Why couldn't I add a !LABEL?
+
+WHy can't I ADD [ESP], 0x1?
+
+Figure out how to do name mangling.  Doesn't happen at runtime, but does happen if you build a .obj file.

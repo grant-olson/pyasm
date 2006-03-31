@@ -31,7 +31,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)\$(ProjectName).exe"
+				OutputFile="..\$(ProjectName)_d.pyd"
 				LinkIncremental="2"
 				GenerateDebugInformation="TRUE"
 				AssemblyDebug="1"/>

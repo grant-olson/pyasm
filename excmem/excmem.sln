@@ -3,6 +3,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "excmem", "excmem.vcproj", "
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "structs", "..\structs\structs.vcproj", "{53BBB28A-F748-4842-9E2C-33F3BB4609D6}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
@@ -13,6 +17,10 @@ Global
 		{EC502D37-88DF-4D14-AAB9-7CF8228DC8D9}.Debug.Build.0 = Debug|Win32
 		{EC502D37-88DF-4D14-AAB9-7CF8228DC8D9}.Release.ActiveCfg = Release|Win32
 		{EC502D37-88DF-4D14-AAB9-7CF8228DC8D9}.Release.Build.0 = Release|Win32
+		{53BBB28A-F748-4842-9E2C-33F3BB4609D6}.Debug.ActiveCfg = Debug|Win32
+		{53BBB28A-F748-4842-9E2C-33F3BB4609D6}.Debug.Build.0 = Debug|Win32
+		{53BBB28A-F748-4842-9E2C-33F3BB4609D6}.Release.ActiveCfg = Release|Win32
+		{53BBB28A-F748-4842-9E2C-33F3BB4609D6}.Release.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection

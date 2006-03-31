@@ -41,7 +41,7 @@ class test_text_generation(unittest.TestCase):
         i = m.GetInstance()
         i.LoadConcreteValues("CALL foo")
         self.assertEqual(i.OpText(),
-                         '  00000000: E8 00 00 00 00          CALL      0x5       ')
+                         '  00000000: E8 00 00 00 00          CALL      foo       ')
     def test_other_bad_string(self):
         m = findBestMatch("MOV EAX,0xCCCCCCCC")
         i = m.GetInstance()

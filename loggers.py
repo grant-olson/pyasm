@@ -26,9 +26,9 @@ console.setLevel(logging.INFO)
 formatter = logging.Formatter("%(message)s")
 console.setFormatter(formatter)
 
-x86apiLogger.addHandler(console)
-x86sourceLogger.addHandler(console)
-x86asmLogger.addHandler(console)
+#x86apiLogger.addHandler(console)
+#x86sourceLogger.addHandler(console)
+#x86asmLogger.addHandler(console)
 
 socketHandler = logging.handlers.SocketHandler('localhost',
                     logging.handlers.DEFAULT_TCP_LOGGING_PORT)

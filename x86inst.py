@@ -711,6 +711,18 @@ i("3A /r", "CMP r8,r/m8", "Compare r/m8 with r8.")
 i("3B /r", "CMP r16,r/m16", "Compare r/m16 with r16.")
 i("3B /r", "CMP r32,r/m32", "Compare r/m32 with r32.")
 
+i("FE /1", "DEC r/m8", "Decrement r/m8 by 1.")
+i("FF /1", "DEC r/m16", "Decrement r/m16 by 1.")
+i("FF /1", "DEC r/m32", "Decrement r/m32 by 1.")
+i("48+rw", "DEC r16", "Decrement r16 by 1.")
+i("48+rd", "DEC r32", "Decrement r32 by 1.")
+
+i("FE /0", "INC r/m8", "Increment r/m byte by 1.")
+i("FF /0", "INC r/m16", "Increment r/m word by 1.")
+i("FF /0", "INC r/m32", "Increment r/m doubleword by 1.")
+i("40+ rw", "INC r16", "Increment word register by 1.")
+i("40+ rd", "INC r32", "Increment doubleword register by 1.")
+
 i("CC", "INT 3", "Interrupt 3 - trap to debugger.")
 i("CD ib", "INT imm8", "Interrupt vector number specified by immediate byte.")
 i("CE", "INTO", "Interrupt 4 - if overflow flag is 1.")

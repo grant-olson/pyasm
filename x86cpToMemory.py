@@ -41,12 +41,12 @@ class CpToMemory:
             self.symbols[sym] = funcaddress
             return funcaddress
 
-    def BindPythonFunctions(self,glb=None):
+    def BindPythonFunctions(self,glb=None,bindFunction=excmem.BindFunctionAddress):
         if glb is None:
             glb = globals()
         for proc in self.cp.CodeSymbols:
             if proc[2] == PYTHON:
-                glb[proc[0]] = excmem.BindFunctionAddress(proc[1] + self.codeAddr)
+                glb[proc[0]] = bindFunction(proc[1] + self.codeAddr)
             
     def MakeMemory(self,glb=None):
         if not glb:

@@ -3,6 +3,7 @@
 from distutils.core import setup, Extension
 
 excmem = Extension('pyasm.excmem',['pyasm/excmem/excmem.c'])
+structs = Extension('pyasm.structs',['pyasm/structs/structs.c'])
 
 setup(name='pyasm',
       version='0.3',
@@ -10,5 +11,5 @@ setup(name='pyasm',
       author='Grant Olson',
       author_email='olsongt@verizon.net',
       packages=['pyasm','pyasm.test','pyasm.examples'],
-      ext_modules=[excmem]
+      ext_modules=[excmem, structs]
       )
