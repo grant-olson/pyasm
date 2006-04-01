@@ -53,7 +53,8 @@ def possibleImmediateOrRelative(*toks):
     #if it's 8 bit, try to grab smaller opcode
     if first[0] == NUMBER:
         num = eval(first[1])
-        if num >= -127 and num <= 128:
+        # Now 0x00000001 is imm32
+        if len(first[1]) < 4 and num >= -127 and num <= 128:
             immVals.insert(0,(OPERAND,'imm8'))
             relVals.insert(0,(OPERAND,'rel8'))
 
