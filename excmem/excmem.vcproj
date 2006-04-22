@@ -15,9 +15,9 @@
 			Name="Debug|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			CharacterSet="2"
-			ManagedExtensions="TRUE">
+			ManagedExtensions="FALSE">
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
