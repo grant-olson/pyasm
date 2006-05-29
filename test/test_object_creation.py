@@ -75,8 +75,8 @@ class test_object_creation(unittest.TestCase):
 
         cp = a.Compile()
        
-        self.assertEquals(cp.Code,'U\x8b\xec\x83\xec@SVW\x8d}\xc0\xb9\x10\x00\x00\x00\xb8\xcc\xcc\xcc\xcc\xf3\xabh\x00\x00\x00\x00\xe8\x00\x00\x00\x00\x83\xc4\x043\xc0_^[\x83\xc4@;\xec\xe8\x00\x00\x00\x00\x8b\xe5]\xc3')
-        self.assertEquals(cp.CodePatchins,[('hello_world', 25, 2), ('_printf', 30, 1), ('__chkesp', 48, 1)])
+        self.assertEquals(cp.Code,'U\x8b\xec\x81\xec@\x00\x00\x00SVW\x8d}\xc0\xb9\x10\x00\x00\x00\xb8\xcc\xcc\xcc\xcc\xf3\xabh\x00\x00\x00\x00\xe8\x00\x00\x00\x00\x83\xc4\x043\xc0_^[\x81\xc4@\x00\x00\x00;\xec\xe8\x00\x00\x00\x00\x8b\xe5]\xc3')
+        self.assertEquals(cp.CodePatchins,[('hello_world', 28, 2), ('_printf', 33, 1), ('__chkesp', 54, 1)])
         self.assertEquals(cp.CodeSymbols,[('_main', 0, 0)])
         self.assertEquals(cp.Data,'Hello, World\n\x00GOODBYE WORLD!\n\x00')
         self.assertEquals(cp.DataSymbols,[('hello_world', 0), ('goodbye_world', 14)])

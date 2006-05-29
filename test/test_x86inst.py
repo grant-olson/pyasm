@@ -32,7 +32,7 @@ class test_digit_flag(unittest.TestCase):
         ii = i.GetInstance()
         ii.LoadConcreteValues(tokenizeInst("SUB ESP,0x40"))
         s = ii.OpDataAsString()
-        self.assertEqual(s,"\x83\xec\x40")
+        self.assertEqual(s,"\x81\xec@\x00\x00\x00")
 
 class test_text_generation(unittest.TestCase):
     def test_ModRM_calculation(self):
