@@ -24,6 +24,17 @@ def emitFileHeader():
     Py_INCREF(offset); \
     PyModule_AddObject(m, OFFSET_STRING(f), offset);
 
+/* Py_DEBUG implies Py_TRACE_REFS. */
+#if defined(Py_DEBUG) && !defined(Py_TRACE_REFS)
+#define Py_TRACE_REFS
+#endif
+
+/* Py_TRACE_REFS implies Py_REF_DEBUG. */
+#if defined(Py_TRACE_REFS) && !defined(Py_REF_DEBUG)
+#define Py_REF_DEBUG
+#endif
+
+
 static PyObject *StructsError;
 static PyObject *offset;
 
@@ -39,6 +50,10 @@ def emitFileBody():
 static void
 load_PyObject(PyObject* module)
 {
+#ifdef Py_TRACE_REFS
+    OFFSET(module,PyObject,_ob_next);
+    OFFSET(module,PyObject,_ob_prev);
+#endif
     OFFSET(module,PyObject,ob_refcnt);
     OFFSET(module,PyObject,ob_type);
 }
@@ -72,9 +87,11 @@ initstructs(void)
     PyModule_AddObject(m, "StructsError", StructsError);
 
     load_PyObject(n);
+    Py_INCREF(n);
     PyModule_AddObject(m, "PyObject", n);
 
     load_PyVarObject(o);
+    Py_INCREF(o);
     PyModule_AddObject(m, "PyVarObject", o);
     
     %s
@@ -92,6 +109,7 @@ load_%(funcname)s(PyObject *structs)
 def emitModuleFooter(moduleName):
     print """
 
+    Py_INCREF(sm);
     PyModule_AddObject(structs,"%(funcname)s",sm);
 }""" % {'funcname':moduleName}
 
