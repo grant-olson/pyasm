@@ -6,13 +6,11 @@ from x86PackUnpack import ulongToString
 from x86asm import PYTHON
 import pyasm.excmem as excmem
 
-
 import logging, sys
 
 if sys.platform == 'win32':
     import win32api, pywintypes
     from sys import dllhandle
-    python24Handle = win32api.GetModuleHandle("python24")
 
     def runtimeResolve(funcName):
         try:
