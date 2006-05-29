@@ -167,14 +167,30 @@ def parse_filetext(filetext):
                     var = vars.pop()
                     if var in ('*', '**'):
                         var = vars.pop()
-                        print >> sys.stderr, "POINTER", var
-                        emitOffset(name, var)
+                        if var == "(":
+                            #function pointer
+                            print >> sys.stderr, "FUNCTION POINTER", vars
+                            var = vars.pop()
+                            if var != "*":
+                                print >> sys.stderr, var, vars
+                                raise RuntimeError("Invalid Function Pointer "
+                                               "format: %s.  Expected '*' got %s from %s" % (line,var,vars))
+                            var = vars.pop()
+                            emitOffset(name, var)
+                            vars = None
+                        else:
+                            print >> sys.stderr, "POINTER", var
+                            emitOffset(name, var)
                     elif var == '(':
                         print >> sys.stderr, "FUNCTION POINTER", vars
                         var = vars.pop()
+                        print >> sys.stderr, "NAME VAR" , name, var
                         if var != "*":
-                            raise RuntimeError("Invalid FUnction Pointer format: %s" % line)
+                            print >> sys.stderr, var, vars
+                            raise RuntimeError("Invalid Function Pointer "
+                                               "format: %s.  Expected '*' got %s from %s" % (line,var,vars))
                         var = vars.pop()
+                        
                         emitOffset(name, var)
                         vars = None
                     elif var == "[":
