@@ -38,8 +38,7 @@ from pyasm.x86asm import assembler
 from pyasm.x86cpToCoff import CpToCoff
 import unittest
 import os,sys
-
-linkCmd = "cd output && link /DEBUG /OPT:REF /OPT:ICF %s"
+from linkCmd import linkCmd
 
 class test_object_creation(unittest.TestCase):     
         
@@ -88,7 +87,7 @@ class test_object_creation(unittest.TestCase):
         f.close()
 
         if sys.platform == 'win32':
-            self.assertEquals(os.system(linkCmd % "testHelloWorld.obj"),0)
+            self.assertEquals(os.system(linkCmd("testHelloWorld")),0)
             self.assertEquals(os.popen("cd output && testHelloWorld.exe").read(),"Hello, World\n")       
         else:
             print "Skipping linker test, coff files are only valid on win32 platforms"
@@ -111,7 +110,7 @@ class test_object_creation(unittest.TestCase):
         f.close()
 
         if sys.platform == 'win32':
-            self.assertEquals(os.system(linkCmd % "testProc.obj"), 0)
+            self.assertEquals(os.system(linkCmd("testProc")), 0)
             self.assertEquals(os.popen("cd output && testProc.exe").read(), "Hello, World\n")
         else:
             print "Skipping linker test, coff files are only valid on win32 platforms"
@@ -138,7 +137,7 @@ class test_object_creation(unittest.TestCase):
         f.close()
 
         if sys.platform == 'win32':
-            self.assertEquals(os.system(linkCmd % "testGoodbyeWorld.obj"), 0) 
+            self.assertEquals(os.system(linkCmd("testGoodbyeWorld")), 0) 
             self.assertEquals(os.popen("cd output &&testGoodbyeWorld.exe").read(), "Goodbye, World\n")
         else:
             print "Skipping linker test, coff files are only valid on win32 platforms"
@@ -173,7 +172,7 @@ class test_object_creation(unittest.TestCase):
         f.close()
 
         if sys.platform == 'win32':
-            self.assertEquals(os.system(linkCmd % "testTwoProcs.obj"), 0)
+            self.assertEquals(os.system(linkCmd("testTwoProcs")), 0)
             self.assertEquals(os.popen("cd output && testTwoProcs.exe").read(),
                               "Hello, all 18 planets!\n")
         else:

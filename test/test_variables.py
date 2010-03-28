@@ -9,8 +9,7 @@ from pyasm.x86asm import assembler, CDECL
 from pyasm.x86cpToCoff import CpToCoff
 import unittest
 import os,sys
-
-linkCmd = "cd output && link /DEBUG /OPT:REF /OPT:ICF %s"
+from linkCmd import linkCmd
 
 class test_variables(unittest.TestCase):
     def test_params(self):
@@ -54,7 +53,7 @@ class test_variables(unittest.TestCase):
         f.close()
 
         if sys.platform == 'win32':
-            self.assertEquals(os.system(linkCmd % "testParams.obj"), 0)
+            self.assertEquals(os.system(linkCmd("testParams")), 0)
             self.assertEquals(os.popen("cd output && testParams.exe").read(),
                               "3h + 12h + 12h = 27h\n")
         else:
@@ -97,7 +96,7 @@ class test_variables(unittest.TestCase):
         f.close()
 
         if sys.platform == 'win32':
-            self.assertEquals(os.system(linkCmd % "testLocals.obj"), 0)
+            self.assertEquals(os.system(linkCmd("testLocals")), 0)
             self.assertEquals(os.popen("cd output && testlocals.exe").read(),
                               "3h + 12h + 12h = 27h\n")
         else:

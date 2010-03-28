@@ -9,12 +9,11 @@ from pyasm.x86asm import assembler, CDECL
 from pyasm.x86cpToCoff import CpToCoff
 import unittest
 import os,sys
+from linkCmd import linkCmd
 
 """
 Hopefully this will fix itself when I get all the proper coff entries in place
 """
-
-linkCmd = "cd output && link /DEBUG %s"
 
 class test_linker(unittest.TestCase):
     def test_linker(self):
@@ -58,7 +57,7 @@ class test_linker(unittest.TestCase):
         f.close()
 
         if sys.platform == "win32":
-            self.assertEquals(os.system(linkCmd % "testLinker.obj"), 0)
+            self.assertEquals(os.system(linkCmd("testLinker")), 0)
             self.assertEquals(os.popen("cd output && testLinker.exe").read(),
                               "3h + 12h + 12h = 27h\n")
         else:
