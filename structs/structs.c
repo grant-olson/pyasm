@@ -674,7 +674,7 @@ load_PySetObject(PyObject *structs)
 
 
     load_PyObject(sm);
-    OFFSET(sm,PySetObject,data);
+    OFFSET(sm,PySetObject,table);
     OFFSET(sm,PySetObject,hash);
     OFFSET(sm,PySetObject,weakreflist);
 
