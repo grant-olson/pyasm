@@ -81,7 +81,7 @@ class test_object_creation(unittest.TestCase):
         self.assertEquals(cp.Data,'Hello, World\n\x00GOODBYE WORLD!\n\x00')
         self.assertEquals(cp.DataSymbols,[('hello_world', 0), ('goodbye_world', 14)])
 
-        coff = CpToCoff(cp,"-defaultlib:LIBCPD -defaultlib:LIBCD -defaultlib:OLDNAMES ").makeReleaseCoff()
+        coff = CpToCoff(cp,"-defaultlib:LIBCPMTD -defaultlib:LIBCMTD -defaultlib:OLDNAMES ").makeReleaseCoff()
 
         f = file("output/testHelloWorld.obj","wb")
         coff.WriteToFile(f)
@@ -105,7 +105,7 @@ class test_object_creation(unittest.TestCase):
         a.EP()
 
         cp = a.Compile()
-        coff = CpToCoff(cp,"-defaultlib:LIBCPD -defaultlib:LIBCD -defaultlib:OLDNAMES ").makeReleaseCoff()
+        coff = CpToCoff(cp,"-defaultlib:LIBCPMTD -defaultlib:LIBCMTD -defaultlib:OLDNAMES ").makeReleaseCoff()
         f = file("output/testProc.obj","wb")
         coff.WriteToFile(f)
         f.close()
@@ -132,7 +132,7 @@ class test_object_creation(unittest.TestCase):
         a.EP()
 
         cp = a.Compile()
-        coff = CpToCoff(cp,"-defaultlib:LIBCPD -defaultlib:LIBCD -defaultlib:OLDNAMES ").makeReleaseCoff()
+        coff = CpToCoff(cp,"-defaultlib:LIBCPMTD -defaultlib:LIBCMTD -defaultlib:OLDNAMES ").makeReleaseCoff()
         f = file("output/testGoodbyeWorld.obj","wb")
         coff.WriteToFile(f)
         f.close()
@@ -167,7 +167,7 @@ class test_object_creation(unittest.TestCase):
 
         cp = a.Compile()
         
-        coff = CpToCoff(cp,"-defaultlib:LIBCPD -defaultlib:LIBCD -defaultlib:OLDNAMES ").makeReleaseCoff()
+        coff = CpToCoff(cp,"-defaultlib:LIBCPMTD -defaultlib:LIBCMTD -defaultlib:OLDNAMES ").makeReleaseCoff()
         f = file("output/testTwoProcs.obj","wb")
         coff.WriteToFile(f)
         f.close()

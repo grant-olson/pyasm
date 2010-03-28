@@ -52,7 +52,7 @@ class test_linker(unittest.TestCase):
 
         cp = a.Compile()
         
-        coff = CpToCoff(cp,"-defaultlib:LIBC -defaultlib:OLDNAMES ").makeReleaseCoff()
+        coff = CpToCoff(cp,"-defaultlib:LIBMT -defaultlib:OLDNAMES ").makeReleaseCoff()
         f = file("output/testLinker.obj","wb")
         coff.WriteToFile(f)
         f.close()

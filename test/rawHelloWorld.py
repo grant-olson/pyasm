@@ -17,7 +17,7 @@ s1.Name = ".drectve"
 s1.Flags = (SectionFlags.LNK_REMOVE |
             SectionFlags.LNK_INFO |
             SectionFlags.ALIGN_1BYTES)
-s1.RawData = '-defaultlib:LIBC -defaultlib:OLDNAMES '
+s1.RawData = '-defaultlib:LIBCMT -defaultlib:OLDNAMES '
 c.Sections.append(s1)
 
 s2 = coffSection()

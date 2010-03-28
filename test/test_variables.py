@@ -48,7 +48,7 @@ class test_variables(unittest.TestCase):
 
         cp = a.Compile()
         
-        coff = CpToCoff(cp,"-defaultlib:LIBC -defaultlib:OLDNAMES ").makeReleaseCoff()
+        coff = CpToCoff(cp,"-defaultlib:LIBCMT -defaultlib:OLDNAMES ").makeReleaseCoff()
         f = file("output/testParams.obj","wb")
         coff.WriteToFile(f)
         f.close()
@@ -91,7 +91,7 @@ class test_variables(unittest.TestCase):
 
         cp = a.Compile()
         
-        coff = CpToCoff(cp,"-defaultlib:LIBC -defaultlib:OLDNAMES ").makeReleaseCoff()
+        coff = CpToCoff(cp,"-defaultlib:LIBCMT -defaultlib:OLDNAMES ").makeReleaseCoff()
         f = file("output/testLocals.obj","wb")
         coff.WriteToFile(f)
         f.close()

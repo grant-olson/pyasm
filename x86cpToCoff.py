@@ -11,7 +11,7 @@ from binascii import crc32
 from x86inst import RELATIVE, DIRECT
 
 class CpToCoff:
-    def __init__(self,cp,directives="-defaultlib:LIBC -defaultlib:OLDNAMES "):
+    def __init__(self,cp,directives="-defaultlib:LIBCMT -defaultlib:OLDNAMES "):
         self.cp = cp
         self.directives=directives
 
