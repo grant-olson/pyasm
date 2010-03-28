@@ -1,3 +1,6 @@
+# Copyright 2004-2010 Grant T. Olson.
+# See license.txt for terms.
+
 #
 # Some of this code was ripped from the logging example
 # Presumably licensed under the python license

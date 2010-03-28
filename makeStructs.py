@@ -1,3 +1,6 @@
+# Copyright 2004-2010 Grant T. Olson.
+# See license.txt for terms.
+
 import re, sys, glob, os, time
 
 #These files are in the 'include' directory, but are modules.

@@ -1,3 +1,6 @@
+# Copyright 2004-2010 Grant T. Olson.
+# See license.txt for terms.
+
 import pyasm.structs
 
 def PythonConstants(a):

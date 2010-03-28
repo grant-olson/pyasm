@@ -2,8 +2,8 @@
 pyasm User's Guide V. 0.3
 +++++++++++++++++++++++++
 
-by Grant Olson <olsongt at verizon.net>
-+++++++++++++++++++++++++++++++++++++++
+by Grant Olson <kgo at grant-olson dot net>
++++++++++++++++++++++++++++++++++++++++++++
 
 .. contents::
 
@@ -25,24 +25,22 @@ freely available assemblers if this is you primary goal.
 Installation
 ------------
 
-Pyasm requires python 2.4 or later.  To the best of my knowledge, the only 2.4
-specific feature I've used is `from x import (a,b,c)`, but I need to draw a
-line in the sand somewhere as far as the installations I'll test and support.
+Pyasm currently requires python 2.6.
 
 Linux Install:
 
-    + Download and extract pyasm-0.2.tar.gz_
+    + Download and extract pyasm-0.3.tar.gz_
     + python setup.py install
 
 Windows Install:
 
-    + Download and run pyasm-0.2.win32-py2.4.exe_
-    + A source distribution pyasm-0.2.zip_ is available, but you'll need VS7.0 to 
+    + Download and run pyasm-0.3.win32-py2.6.exe_
+    + A source distribution pyasm-0.3.zip_ is available, but you'll need VS7.0 to 
       compile the excmem module.
 
-.. _pyasm-0.2.tar.gz: http://mysite.verizon.net/olsongt/pyasm-0.2.tar.gz
-.. _pyasm-0.2.win32-py2.4.exe: http://mysite.verizon.net/olsongt/pyasm-0.2.win32-py2.4.exe
-.. _pyasm-0.2.zip: http://mysite.verizon.net/olsongt/pyasm-0.2.zip
+.. _pyasm-0.3.tar.gz: http://www.grant-olson.net/python/pyasm/pyasm-0.3.tar.gz?attredirects=0&d=1
+.. _pyasm-0.3.win32-py2.6.exe: http://www.grant-olson.net/python/pyasm/pyasm-0.3.win32-py2.6.exe.zip?attredirects=0&d=1
+.. _pyasm-0.3.zip: http://www.grant-olson.net/python/pyasm/pyasm-0.3.zip?attredirects=0&d=1
 
 ------------
 Hello World!

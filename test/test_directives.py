@@ -1,3 +1,6 @@
+# Copyright 2004-2010 Grant T. Olson.
+# See license.txt for terms.
+
 from pyasm.x86asm import assembler
 from pyasm.x86cpToMemory import CpToMemory
 

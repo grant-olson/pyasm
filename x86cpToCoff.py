@@ -1,4 +1,4 @@
-# Copyright 2004-2005 Grant T. Olson.
+# Copyright 2004-2010 Grant T. Olson.
 # See license.txt for terms.
 
 from pyasm.coff import (coffError, coffFile, coffSection, coffRelocationEntry,
