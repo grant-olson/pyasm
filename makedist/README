@@ -8,6 +8,10 @@ requiring object file generation or linkage.
 New in version 0.3
 ------------------
 
+  + You can now run the test cases via mingw as well as msvc.  Set the command
+    in test/linkCmd.py appropraitely.  Thanks to Markus Lall for figuring out
+    how to do this.
+
   + Updated to python 2.6.
 
   + Updated MSVC project files to VC 2008.
