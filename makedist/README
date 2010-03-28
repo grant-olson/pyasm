@@ -8,6 +8,10 @@ requiring object file generation or linkage.
 New in version 0.3
 ------------------
 
+  + Updated to python 2.6.
+
+  + Updated MSVC project files to VC 2008.
+
   + Python structure values are loaded automatically if desired.  For Example,
     assuming EAX is a pointer to a string MOV [EAX+PyString_ob_sval],0x42424242
     will change the first four letters of the string to B's.

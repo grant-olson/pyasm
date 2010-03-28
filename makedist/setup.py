@@ -9,7 +9,7 @@ setup(name='pyasm',
       version='0.3',
       description='dynamic x86 assembler for python',
       author='Grant Olson',
-      author_email='olsongt@verizon.net',
+      author_email='kgo@grant-olson.net',
       packages=['pyasm','pyasm.test','pyasm.examples'],
       ext_modules=[excmem, structs]
       )
